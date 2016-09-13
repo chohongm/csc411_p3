@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.example.eduardoaleixo.phase3app">
+
+    <application
+        android:allowBackup="true"
+        android:debuggable="true"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:supportsRtl="true"
+        android:theme="@style/AppTheme"
+        android:windowSoftInputMode="stateHidden">
+        <activity
+            android:name=".LoginActivity"
+            android:label="@string/title_activity_login"
+            android:theme="@style/AppTheme.NoActionBar">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+        <activity
+            android:name=".AdminMenu"
+            android:label="@string/title_activity_admin_menu"
+            android:theme="@style/AppTheme.NoActionBar" />
+        <activity
+            android:name=".ClientMenu"
+            android:label="@string/title_activity_client_menu"
+            android:theme="@style/AppTheme.NoActionBar" />
+        <activity
+            android:name=".ItinerarySearch"
+            android:label="@string/title_activity_itinerary_search"
+            android:theme="@style/AppTheme.NoActionBar" />
+        <activity
+            android:name=".SearchedItinerariesDisplay"
+            android:label="@string/title_activity_searched_itineraries_display"
+            android:theme="@style/AppTheme.NoActionBar" />
+        <activity
+            android:name=".SearchedFlightsDisplay"
+            android:label="@string/title_activity_searched_flights_display"
+            android:theme="@style/AppTheme.NoActionBar" />
+        <activity
+            android:name=".SearchFlightActivity"
+            android:label="@string/title_search_flight"
+            android:theme="@style/AppTheme.NoActionBar" />
+        <activity
+            android:name=".LoadFlights"
+            android:label="@string/title_activity_upload_flights"
+            android:theme="@style/AppTheme.NoActionBar" />
+        <activity
+            android:name=".ViewFlightsActivity"
+            android:label="@string/title_activity_view_flights"
+            android:theme="@style/AppTheme.NoActionBar" />
+        <activity
+            android:name=".ItineraryBook"
+            android:label="@string/title_activity_itinerary_book"
+            android:theme="@style/AppTheme.NoActionBar" />
+        <activity
+            android:name=".UploadClientInfo"
+            android:label="@string/title_activity_upload_client_info"
+            android:theme="@style/AppTheme.NoActionBar" />
+        <activity
+            android:name=".EditFlightActivity"
+            android:label="@string/title_activity_edit_flight"
+            android:theme="@style/AppTheme.NoActionBar" />
+        <activity
+            android:name=".ClientSearch"
+            android:label="@string/title_activity_client_search"
+            android:theme="@style/AppTheme.NoActionBar" />
+        <activity
+            android:name=".SearchedClientsDisplay"
+            android:label="@string/title_activity_searched_clients_display"
+            android:theme="@style/AppTheme.NoActionBar" />
+        <activity
+            android:name=".ClientEditClientInfo"
+            android:label="@string/title_activity_client_edit_client_info"
+            android:theme="@style/AppTheme.NoActionBar" />
+        <activity
+            android:name=".DisplayAllClients"
+            android:label="@string/title_activity_display_all_clients"
+            android:theme="@style/AppTheme.NoActionBar" />
+    </application>
+
+</manifest>

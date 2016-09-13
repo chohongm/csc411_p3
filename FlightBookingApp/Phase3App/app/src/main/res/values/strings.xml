@@ -1,0 +1,98 @@
+<resources>
+    <string name="app_name">Phase3App</string>
+    <string name="action_settings">Settings</string>
+    <string name="title_activity_login">Login</string>
+    <string name="title_activity_admin_menu">Admin Menu</string>
+    <string name="title_activity_client_menu">Client Menu</string>
+    <string name="flight_search">Search/Edit Flights</string>
+    <string name="flight_searchonly">Search Flights</string>
+    <string name="itin_search">Search/Book Itineraries</string>
+    <string name="view_client_info">View/Edit Personal/Billing Info</string>
+    <string name="edit_client_info">Edit Personal/Billing Info</string>
+    <string name="upload_client_info">Upload Client Information</string>
+    <string name="view_flight_info">View Flight Info</string>
+    <string name="edit_flight_info">Edit Flight Info</string>
+    <string name="upload_flight_info">Upload Flight Info</string>
+    <string name="title_activity_flight_search">FlightSearch</string>
+    <string name="title_activity_itinerary_search">ItinerarySearch</string>
+    <string name="title_activity_searched_itineraries_display">SearchedItinerariesDisplay</string>
+
+
+    <string name="load_flights">Load Flights</string>
+    <string name="flights_filename">Flights filename</string>
+    <string name="flights_file">flights1.txt</string>
+
+
+    <string name="title_search_flight">Search Flights</string>
+    <string name="origin">Origin (Case Sensitive)</string>
+    <string name="destination">Destination (Case Sensitive)</string>
+    <string name="departure_date">Departure Date</string>
+    <string name="sort_by_cost">Sort By Cost</string>
+    <string name="sort_by_time">Sort By Flight Duration</string>
+    <string name="search">Search</string>
+    <string name="book">Book</string>
+    <string name="date">Date YYYY-MM-DD</string>
+    <string name="searchFlight">Search Flight</string>
+    <string name="title_activity_upload_flights">UploadFlights</string>
+    <string name="title_activity_view_flights">ViewFlightsActivity</string>
+    <string name="title_activity_itinerary_book">ItineraryBook</string>
+    <string name="title_activity_upload_client_info">UploadClientInfo</string>
+
+    <string name="title_activity_searched_flights_display">Searched Flights</string>
+
+
+    <string name="clientInfo_filename">Client Info File Name: </string>
+    <string name="uploadClient_button">Load Client Data</string>
+    <string name="title_activity_edit_client_info">Edit Client Info</string>
+    <string name="client_first_name">First Name: </string>
+    <string name="client_last_name">Last Name:  </string>
+    <string name="title_activity_admin_itinerary_book">AdminItineraryBook</string>
+    <string name="title_activity_edit_flight">EditFlightActivity</string>
+    <string name="flight_duration">Flight Duration: </string>
+
+    <string name="edit_flightNumber">Flight Number:</string>
+    <string name="edit_airline">Airline:</string>
+    <string name="edit_origin">Origin:</string>
+    <string name="edit_destination">Destination:</string>
+    <string name="edit_cost">Cost:</string>
+    <string name="edit_departure">Departure:</string>
+    <string name="edit_numSeats">Seats:</string>
+    <string name="title_activity_booked_clients_display">BookedClientsDisplay</string>
+    <string name="title_activity_client_search">ClientSearch</string>
+    <string name="title_activity_searched_clients_display">SearchedClientsDisplay</string>
+    <string name="title_activity_client_edit_client_info">Edit Client Info</string>
+
+    <string name="client_creditcard">Credit Card Number: </string>
+    <string name="client_address">Address: </string>
+    <string name="client_expirydate">Expiry Date: </string>
+    <string name="save_button">Save </string>
+    <string name="client_email">Email/Username: </string>
+    <string name="view_all_clients">All Clients </string>
+    <string name="title_activity_display_all_clients">All Clients</string>
+    <string name="title_activity_admin_edit_client">AdminEditClient</string>
+    <string name="click_more_info">Touch for more details...</string>
+    <string name="click_to_book">Click to Book</string>
+    <string name="password">Password</string>
+    <string name="login">Login</string>
+
+
+    <string name="success_clients_uploaded">Clients info uploaded successfully!</string>
+    <string name="file_not_found">File Not found.</string>
+    <string name="available_seats">Num Available Seats:</string>
+    <string name="verify_in_database">Please make sure you are added to the database.</string>
+    <string name="invalid_username_password">Invalid Username/Password.</string>
+    <string name="passwords_file_not_found">passwords.txt file not found.</string>
+    <string name="success_flights_uploaded">Flights have been successfully uploaded.</string>
+    <string name="upload_not_saved">Upload Not Saved</string>
+    <string name="flight_full">The flight is booked at its full capacity</string>
+    <string name="booking_not_saved">Booking was not saved</string>
+    <string name="client_already_booked">Client is already booked for this itinerary.</string>
+    <string name="flight_not_found">Weird. This flight was not found in the system.</string>
+    <string name="success_flight_edited">Flight edited successfully!</string>
+    <string name="information_saved">Information has been saved!</string>
+    <string name="information_not_saved">Information has not been saved.</string>
+
+
+
+
+</resources>
