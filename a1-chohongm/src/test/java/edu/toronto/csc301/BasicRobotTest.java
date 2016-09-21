@@ -25,7 +25,7 @@ public class BasicRobotTest {
 		IBasicRobot robot = createBasicRobot(1.5, -3.1, 60);
 		assertEquals(1.5, robot.getXCoordinate(), 0.01);
 	}
-
+	
 	@Test
 	public void createRobotAndCheckYCoordinate() throws Exception {
 		IBasicRobot robot = createBasicRobot(1.5, -3.1, 60);
@@ -215,7 +215,7 @@ public class BasicRobotTest {
 
 	@Test
 	public void moveWest_test2() throws Exception {
-		IBasicRobot robot = createBasicRobot(1000, 1, 270);
+		IBasicRobot robot = createBasicRobot(1000,1, 270);
 		robot.moveForward(1000);
 		assertRobotLocation(robot, 0, 1);
 	}
