@@ -1,0 +1,20 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 2015
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ROMGameJam.CSharp", "ROMGameJam.CSharp.csproj", "{CE464120-FC94-C26B-94A3-C0D48583D596}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{CE464120-FC94-C26B-94A3-C0D48583D596}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{CE464120-FC94-C26B-94A3-C0D48583D596}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{CE464120-FC94-C26B-94A3-C0D48583D596}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{CE464120-FC94-C26B-94A3-C0D48583D596}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal

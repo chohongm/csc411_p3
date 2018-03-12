@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<session version="1.0">
+<refactoring comment="Copy element &apos;PathPlannerAdvancedTest.java&apos; to &apos;a5-chohongm/src/test/java/myOwnTest&apos;&#x0D;&#x0A;- Original project: &apos;a4-chohongm&apos;&#x0D;&#x0A;- Destination element: &apos;a5-chohongm/src/test/java/myOwnTest&apos;&#x0D;&#x0A;- Original element: &apos;edu.toronto.csc301.step3.PathPlannerAdvancedTest.java&apos;" description="Copy compilation unit" destination="=a5-chohongm/src\/test\/java&lt;myOwnTest" element1="/src\/test\/java&lt;edu.toronto.csc301.step3{PathPlannerAdvancedTest.java" files="0" flags="589830" folders="0" id="org.eclipse.jdt.ui.copy" policy="org.eclipse.jdt.ui.copyResources" stamp="1480212584810" units="1" version="1.0"/>
+</session>

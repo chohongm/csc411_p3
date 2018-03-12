@@ -1,0 +1,236 @@
+package edu.toronto.csc301.warehouse;
+
+import java.util.AbstractMap;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+
+import edu.toronto.csc301.grid.GridCell;
+import edu.toronto.csc301.grid.IGrid;
+import edu.toronto.csc301.robot.GridRobot;
+import edu.toronto.csc301.robot.IGridRobot;
+import edu.toronto.csc301.robot.IGridRobot.Direction;
+
+public class PathPlanner implements IPathPlanner {
+
+	/**
+	 * TODO: Complete the implementation of this class.
+	 * (you can use your implementation from A4 as a starting point) 
+	 */
+	
+	public Entry<IGridRobot, Direction> nextStep(IWarehouse wHouse, Map<IGridRobot, GridCell> robot2dest) {
+		
+		// data field needed for A* path finding algo
+		List<GridCell> openList = new ArrayList<GridCell>();
+		List<GridCell> closedList = new ArrayList<GridCell>();
+		IGrid<Rack> floorplan = wHouse.getFloorPlan();
+		GridRobot robot = (GridRobot)(robot2dest.keySet().toArray()[0]);
+		GridCell origin = robot.getLocation();
+		GridCell dest = robot2dest.get(robot);
+		robot.getLocation().setG(0);
+		openList.add(origin);
+		// safe holder for compilation.
+		GridCell closedDest = null;
+		Warehouse warehouse = (Warehouse) wHouse;
+		
+//		if (robot.isBackStepRequested()) {
+//			//Direction dir = computeDirection(robot.getLocation(), robot.getPrevLocation());
+//			//return new AbstractMap.SimpleEntry<IGridRobot, Direction>(robot, dir);
+//			robot.signalBackStep(false);
+//			System.out.println(robot.getRobotTag() + " is backstepping!");
+//			dest = robot.getPrevLocation();
+//		}
+		
+		// A* path finding process. keep updating openlist and closedlist until OL is empty.
+		// by the time loop terminates, OL is empty and complete shortest path link is created
+		// between destCell and start cell.
+		while (openList.size() > 0) {
+	        // Get the cell with smallest F score; and then explore this
+			GridCell start = openList.remove(0);
+			closedList.add(start);
+			List<GridCell> validAdjCells = getAllValidAdjCells(origin, start, warehouse, closedList, floorplan);
+			// add MOVABLE adjacent cells to open cells
+	        for(GridCell cell : validAdjCells) {
+        		// if this is destination cell,
+        		if (cell.equals(dest)) {
+            		// check if destination is closed.
+            		// if yes, compare G score and update parent if smaller
+    				if (closedDest != null) {
+            			if (start.getG() + 1 < closedDest.getG()) {
+            				updateCellVals(closedDest, start);
+            			}
+                	// if no, set closedDest
+        			} else {
+        				closedDest = cell;
+        				updateCellVals(closedDest, start);
+        			}
+    				// no need to consider the rest of adjacent cells
+    				// because this adjacent cell is a destination cell
+    				// and all the other ones are in longer paths.
+        			break;
+        		// if not continue path finding process.
+        		} else {
+        			// check if cell already in openlist.
+    				GridCell cellInOL = null;
+    				for (int i = 0; i < openList.size(); i++) {
+						if (openList.get(i).equals(cell)) {
+							cellInOL = openList.remove(i);
+							break;
+						}
+					}
+                	// if already in openlist, compare G score.
+    				if (cellInOL != null) {
+        				// if G score is lower, then update parent and G score.
+    					// otherwise, this path loops, do not add to openlist and just skip.
+    					if (start.getG() + 1 < cellInOL.getG()) {
+    						updateCellVals(cellInOL, start);
+    					}
+        				// insert back into openlist based on F = G + H score.
+                    // otherwise add to openlist
+    				} else {
+                		insertIntoOL(cell, start, dest, openList);
+    				} 
+        		}
+	        }
+		}
+
+		// closedDest is set, it means at least one path connecting origin to destination is found.
+		if (closedDest != null) {
+			// now we have the shortest path from originCell to destCell.
+			// need to backtrace the path from destCell to find the nextStepCell.
+			GridCell nextStepCell = closedDest;
+			GridCell finalCell = closedDest;
+			
+			// recursively update nextCell to be the next cell to be stepped from the starting cell. 
+			if (finalCell != null) {
+				GridCell parent = finalCell.getParent();
+				while (parent != null && !parent.equals(origin)) {
+					nextStepCell = parent;
+					parent = nextStepCell.getParent();
+				}
+				if (cellNotBeingOccupiedByRobot(warehouse, nextStepCell)) {
+					Direction dir = computeDirection(origin, nextStepCell);
+					if (dir != null) {
+						return new AbstractMap.SimpleEntry<IGridRobot, Direction>(robot, dir);
+					}
+				} else {
+					IGridRobot robotToSignal = warehouse.cellOccupiedByRobot(nextStepCell);
+					if (robotToSignal != null) {
+						if (robot.isBackStepRequested()) {
+							//requested for backstep, so back step.
+							Direction dir = computeDirection(origin, robot.getPrevLocation());
+							if (dir != null) {
+								robot.signalBackStep(false);
+								return new AbstractMap.SimpleEntry<IGridRobot, Direction>(robot, dir);
+							}
+						} else {
+							// signal the robot to backstep.
+							robotToSignal.signalBackStep(true);
+						}
+					}
+				}
+			}
+		}
+		// returns null if step was not made
+		// two cases:
+		// 1. path to dest is blocked.
+		// 2. cell to step has higher F value than current cell (better to stay).
+		return null;		
+	}
+	
+	public boolean cellNotBeingOccupiedByRobot(IWarehouse wh, GridCell cell) {
+		if (wh.cellOccupiedByRobot(cell) == null && !wh.cellIsBeingSteppedOn(cell)) {
+			return true;
+		}
+		return false;
+	}
+
+	/*
+	 * finds and returns all grid cells adjacent to the given cell that are VALID:
+	 * 1. cell resides in the floorplan.
+	 * 2. cell is currently not occupied by a robot.
+	 * 3. no robot is in process of stepping to the cell.
+	 * 4. cell is adjacent to the given cell and not diagonal to it.
+	 * 5. cell is not marked as closed (in A Star algo)
+	 */
+	public List<GridCell> getAllValidAdjCells (GridCell origin, GridCell center, Warehouse warehouse,
+											   List<GridCell> closedList, IGrid<Rack> floorplan) {
+		
+		List<GridCell> validCells = new ArrayList<GridCell>();
+		// for each 9 surrounding positions
+        for(int x = center.x - 1; x <= center.x + 1; x++) {
+            for(int y = center.y - 1; y <= center.y + 1; y++) {
+            	// 4. if position is not diagonal to the center,
+            	if (Math.abs(x - center.x) + Math.abs(y - center.y) != 2 && !(x == center.x && y == center.y)) {
+                	GridCell temp = GridCell.at(x, y);
+                	Iterator<GridCell> gridcells = floorplan.getGridCells();
+                    while (gridcells.hasNext()){
+                    	GridCell cell = gridcells.next();
+                    	// compare the cell with each cell stored in the floor plan,
+                    	// 1. if grid contains a cell at (x, y)
+                    	// 2. no robot at the cell
+                    	// 3. no robot is already stepping to the cell,
+                    	// 5. cell is not marked as closed,
+                    	// it is a valid cell to be considered.
+                    	if (cell.equals(temp) && !closedList.contains(cell)) {
+                    		IGridRobot robotOnCell = warehouse.cellOccupiedByRobot(cell);
+                    		// if other robot is on the cell and is its destination, consider it as a block
+                    		if (robotOnCell == null || !robotOnCell.getDestination().equals(cell)) {
+                    			validCells.add(cell);
+                    		}
+                    	}
+                    }
+            	}
+            }
+        }
+        return validCells;
+	}
+
+	public void insertIntoOL(GridCell cell, GridCell parent, GridCell dest, List<GridCell> openList) {
+		// update parent.
+		cell.setParent(parent);
+		// measure H score
+		cell.setH(Math.abs(dest.x - cell.x) + Math.abs(dest.y - cell.y));
+		// update G score;
+		cell.setG(cell.getParent().getG() + 1);
+		// update F score;
+		cell.setF(cell.getH() + cell.getG());
+		
+		// insert into openList based on F = G + H score.
+		int i = 0;
+		while (i < openList.size() && openList.get(i).getF() < cell.getF()) {
+			i++;
+		}
+		openList.add(i, cell);	
+	}
+	
+	public void updateCellVals(GridCell cell, GridCell parent) {
+		cell.setParent(parent);
+		cell.setG(parent.getG() + 1);
+		cell.setF(cell.getH() + cell.getG());
+	}
+	
+	public Direction computeDirection(GridCell origin, GridCell nextStepCell) {
+		// compute the direction from starting cell to the next-step cell.
+		Direction dir = null;
+		if (nextStepCell != null) {
+			int x = nextStepCell.x - origin.x;
+			int y = nextStepCell.y - origin.y;
+			if (x == 0 && y == 1) {
+				dir = IGridRobot.Direction.NORTH;
+			} else if (x == 1 && y == 0) {
+				dir = IGridRobot.Direction.EAST;
+			} else if (x == 0 && y == -1) {
+				dir = IGridRobot.Direction.SOUTH;
+			} else if (x == -1 && y == 0) {
+				dir = IGridRobot.Direction.WEST;
+			} else {
+				System.out.println("Direction can't be computed. origin: " + origin + 
+						", nsc: " + nextStepCell + ", nsc_parent: " + nextStepCell.getParent());
+			}
+		}
+		return dir;
+	}
+}
