@@ -141,7 +141,7 @@ def get_naive_bayes_probs(P_r, P_f, P_w_r, P_w_f, xs_all):
     return P_f_hl, P_r_hl
 
 
-def part2(train_xs_r, train_xs_f, train_ys_r, train_ys_f, \
+def part2(train_xs_r, train_xs_f, train_ys_r, train_ys_f, validation_xs_r, validation_xs_f, validation_ys_r, \
           test_xs_r, test_xs_f, test_ys_r, test_ys_f):
     # Refer to page 18-23 in http://www.teach.cs.toronto.edu/~csc411h/winter/lec/week5/generative.pdf    
     words_counts = get_words_counts(train_xs_r, train_xs_f)
@@ -149,8 +149,8 @@ def part2(train_xs_r, train_xs_f, train_ys_r, train_ys_f, \
     num_real_data = len(train_ys_r)
     num_fake_data = len(train_ys_f)
     num_total_data = num_real_data + num_fake_data
-    test_xs_all = np.concatenate((test_xs_f, test_xs_r))
-    test_ys_all = np.concatenate((test_ys_f, test_ys_r))
+    validation_xs_all = np.concatenate((validation_xs_f, validation_xs_r))
+    validation_ys_all = np.concatenate((validation_ys_f, validation_ys_r))
 
     P_r = num_real_data / float(num_total_data)
     P_f = 1 - P_r
@@ -165,11 +165,11 @@ def part2(train_xs_r, train_xs_f, train_ys_r, train_ys_f, \
             P_w_r = get_prob_words_given_label(words_counts, 0, num_real_data, m, p)
             P_w_f = get_prob_words_given_label(words_counts, 1, num_fake_data, m, p)
             
-            P_f_hl, P_r_hl = get_naive_bayes_probs(P_r, P_f, P_w_r, P_w_f, test_xs_all)
+            P_f_hl, P_r_hl = get_naive_bayes_probs(P_r, P_f, P_w_r, P_w_f, validation_xs_all)
             # Since there are more than one class, P_f_hl = (P_f * P_hl_f) / sum(P_c * P_hl_c for each class c)
             predicted_ys = np.round(P_f_hl / (P_f_hl + P_r_hl))
-            accuracy = np.sum(predicted_ys == test_ys_all) / float(len(test_ys_all))
-            print "Test {}\n\nm: {}\np: {}\naccuracy: {}\n".format(i, m, p, accuracy)
+            validation_accuracy = np.sum(predicted_ys == validation_ys_all) / float(len(validation_ys_all))
+            print "===== Test {} =====\nm: {}\np: {}\naccuracy: {}\n".format(i, m, p, validation_accuracy)
             i += 1
 
 
@@ -229,8 +229,9 @@ if __name__ == '__main__':
     train_xs_f, test_xs_f, validation_xs_f, train_ys_f, test_ys_f, validation_ys_f = load_data(fn_fake, 1)
     
     #part1(train_xs_r, train_xs_f)
-    #part2(train_xs_r, train_xs_f, train_ys_r, train_ys_f, validation_xs_r, validation_xs_f, validation_ys_r, validation_ys_f)    
-    part3a(train_xs_r, train_xs_f, train_ys_r, train_ys_f, validation_xs_r, validation_xs_f, validation_ys_r, validation_ys_f)
+    part2(train_xs_r, train_xs_f, train_ys_r, train_ys_f, validation_xs_r, validation_xs_f, validation_ys_r, \
+          validation_ys_f, test_xs_r, test_xs_f, test_ys_r, test_ys_f)
+    # part3a(train_xs_r, train_xs_f, train_ys_r, train_ys_f, validation_xs_r, validation_xs_f, validation_ys_r, validation_ys_f)
     
     
 
