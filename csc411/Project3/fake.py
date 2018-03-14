@@ -103,33 +103,41 @@ def part1(train_real, train_fake):
 
     # get words count from each real and fake dataset
     words_counts = get_words_counts(train_real, train_fake)
+    words_counts.pop('trump')
 
-    # # get the most common words in each dataset
-    # real_common = []
-    # fake_common = []
-    #
-    # for i in range(3):
-    #     max_word_real = max(real_words, key=real_words.get)
-    #     max_val_real = real_words.pop(max_word_real)
-    #     real_common.append(tuple((max_word_real, max_val_real)))
-    #     max_word_fake = max(fake_words, key=fake_words.get)
-    #     max_val_fake = fake_words.pop(max_word_fake)
-    #     fake_common.append(tuple((max_word_fake, max_val_fake)))
+    # get the most common words in each dataset
+    real_words = {}
+    fake_words = {}
+    for word in words_counts:
+        real_words[word] = words_counts[word][0]
+        fake_words[word] = words_counts[word][1]
 
-    # print real_common
-    # print fake_common
-    # print "'the' in real headlines: ", real_words['the']
-    # print "'donald' in fake headlines: ", fake_words['donald']
-    
-    print "Word: 'trump'"
-    print "# of appearances in real headlines: ", words_counts['trump'][0]
-    print "# of appearances in fake headlines: ", words_counts['trump'][1]
+    real_common = []
+    fake_common = []
+
+    for i in range(10):
+        max_word_real = max(real_words, key=real_words.get)
+        max_val_real = real_words.pop(max_word_real)
+        real_common.append(tuple((max_word_real, max_val_real)))
+        max_word_fake = max(fake_words, key=fake_words.get)
+        max_val_fake = fake_words.pop(max_word_fake)
+        fake_common.append(tuple((max_word_fake, max_val_fake)))
+
+    print "10 most common words in real headlines: "
+    print real_common
+    print "10 most common words in fake headlines: "
+    print fake_common
+
+    print "\n"
     print "Word: 'donald'"
     print "# of appearances in real headlines: ", words_counts['donald'][0]
     print "# of appearances in fake headlines: ", words_counts['donald'][1]
     print "Word: 'the'"
     print "# of appearances in real headlines: ", words_counts['the'][0]
     print "# of appearances in fake headlines: ", words_counts['the'][1]
+    print "Word: 'us'"
+    print "# of appearances in real headlines: ", words_counts['us'][0]
+    print "# of appearances in fake headlines: ", words_counts['us'][1]
 
 
 def get_naive_bayes_probs(P_r, P_f, P_w_r, P_w_f, xs_all):
@@ -282,9 +290,9 @@ if __name__ == '__main__':
     train_xs_r, test_xs_r, validation_xs_r, train_ys_r, test_ys_r, validation_ys_r = load_data(fn_real, 0)
     train_xs_f, test_xs_f, validation_xs_f, train_ys_f, test_ys_f, validation_ys_f = load_data(fn_fake, 1)
     
-    #part1(train_xs_r, train_xs_f)
-    part2(train_xs_r, train_xs_f, train_ys_r, train_ys_f, validation_xs_r, validation_xs_f, validation_ys_r, \
-          validation_ys_f, test_xs_r, test_xs_f, test_ys_r, test_ys_f)
+    # part1(train_xs_r, train_xs_f)
+    # part2(train_xs_r, train_xs_f, train_ys_r, train_ys_f, validation_xs_r, validation_xs_f, validation_ys_r, \
+    #       validation_ys_f, test_xs_r, test_xs_f, test_ys_r, test_ys_f)
     # part3a(train_xs_r, train_xs_f, train_ys_r, train_ys_f, validation_xs_r, validation_xs_f, validation_ys_r, validation_ys_f)
     
     
