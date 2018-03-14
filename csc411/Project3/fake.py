@@ -1,9 +1,9 @@
 import numpy as np
 import math
 from random import shuffle
-
+import os
 #from pylab import *
-#import matplotlib.pyplot as plt
+import matplotlib.pyplot as plt
 
 
 fn_fake, fn_real = 'clean_fake.txt', 'clean_real.txt'
@@ -141,8 +141,27 @@ def get_naive_bayes_probs(P_r, P_f, P_w_r, P_w_f, xs_all):
     return P_f_hl, P_r_hl
 
 
+def part2_graph(params, accs):
+
+    x = range(len(params))
+    y = accs
+    labels = ['m = {}\np = {}'.format(param[0], param[1]) for param in params]
+
+    plt.plot(x, y)
+    plt.xticks(x, labels, rotation='vertical')
+    # Tweak spacing to prevent clipping of tick-labels
+    plt.subplots_adjust(bottom=0.15)
+
+    plt.xlabel("Values for m and p")
+    plt.ylabel("Validation accuracy")
+    plt.title("Validation Accuracy with Varying Values of m and p")
+    plt.grid(axis='y', linestyle='--')
+    # plt.show()
+    plt.savefig(os.getcwd() + 'part2_graph.png')
+
+
 def part2(train_xs_r, train_xs_f, train_ys_r, train_ys_f, validation_xs_r, validation_xs_f, validation_ys_r, \
-          test_xs_r, test_xs_f, test_ys_r, test_ys_f):
+          validation_ys_f, test_xs_r, test_xs_f, test_ys_r, test_ys_f):
     # Refer to page 18-23 in http://www.teach.cs.toronto.edu/~csc411h/winter/lec/week5/generative.pdf    
     words_counts = get_words_counts(train_xs_r, train_xs_f)
     
@@ -151,12 +170,18 @@ def part2(train_xs_r, train_xs_f, train_ys_r, train_ys_f, validation_xs_r, valid
     num_total_data = num_real_data + num_fake_data
     validation_xs_all = np.concatenate((validation_xs_f, validation_xs_r))
     validation_ys_all = np.concatenate((validation_ys_f, validation_ys_r))
+    train_xs_all = np.concatenate((train_xs_f, train_xs_r))
+    train_ys_all = np.concatenate((train_ys_f, train_ys_r))
+    test_xs_all = np.concatenate((test_xs_f, test_xs_r))
+    test_ys_all = np.concatenate((test_ys_f, test_ys_r))
 
     P_r = num_real_data / float(num_total_data)
     P_f = 1 - P_r
     
     ms = [0.01, 0.1, 1, 10, 100]
     ps = [0.00001, 0.001, 0.1]
+    params = []
+    accs = []
             
     print "Naive-Bayes classification (validation performance)\n"
     i = 1
@@ -164,13 +189,42 @@ def part2(train_xs_r, train_xs_f, train_ys_r, train_ys_f, validation_xs_r, valid
         for p in ps:
             P_w_r = get_prob_words_given_label(words_counts, 0, num_real_data, m, p)
             P_w_f = get_prob_words_given_label(words_counts, 1, num_fake_data, m, p)
-            
+
             P_f_hl, P_r_hl = get_naive_bayes_probs(P_r, P_f, P_w_r, P_w_f, validation_xs_all)
             # Since there are more than one class, P_f_hl = (P_f * P_hl_f) / sum(P_c * P_hl_c for each class c)
             predicted_ys = np.round(P_f_hl / (P_f_hl + P_r_hl))
             validation_accuracy = np.sum(predicted_ys == validation_ys_all) / float(len(validation_ys_all))
             print "===== Test {} =====\nm: {}\np: {}\naccuracy: {}\n".format(i, m, p, validation_accuracy)
+
+            params.append(tuple((m, p)))
+            accs.append(validation_accuracy)
+
             i += 1
+
+    # plot graph of test results
+    part2_graph(params, accs)
+    plt.clf()
+
+    print "Final performance on training and test sets with m = 1 and p = 0.1"
+    P_w_r = get_prob_words_given_label(words_counts, 0, num_real_data, 1, 0.1)
+    P_w_f = get_prob_words_given_label(words_counts, 1, num_fake_data, 1, 0.1)
+
+    P_f_hl_train, P_r_hl_train = get_naive_bayes_probs(P_r, P_f, P_w_r, P_w_f, train_xs_all)
+    # Since there are more than one class, P_f_hl = (P_f * P_hl_f) / sum(P_c * P_hl_c for each class c)
+    predicted_ys_train = np.round(P_f_hl_train / (P_f_hl_train + P_r_hl_train))
+    train_accuracy = np.sum(predicted_ys_train == train_ys_all) / float(len(train_ys_all))
+
+
+    P_f_hl_test, P_r_hl_test = get_naive_bayes_probs(P_r, P_f, P_w_r, P_w_f, test_xs_all)
+    # Since there are more than one class, P_f_hl = (P_f * P_hl_f) / sum(P_c * P_hl_c for each class c)
+    predicted_ys_test = np.round(P_f_hl_test / (P_f_hl_test + P_r_hl_test))
+    test_accuracy = np.sum(predicted_ys_test == test_ys_all) / float(len(test_ys_all))
+
+    print "Training accuracy: {0:.2f}%".format(train_accuracy * 100)
+    print "Test accuracy: {0:.2f}%".format(test_accuracy * 100)
+
+
+
 
 
 def part3a(train_xs_r, train_xs_f, train_ys_r, train_ys_f, \
