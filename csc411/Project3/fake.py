@@ -4,6 +4,8 @@ from random import shuffle
 import os
 #from pylab import *
 import matplotlib.pyplot as plt
+import torch
+import torch.nn as nn
 
 
 fn_fake, fn_real = 'clean_fake.txt', 'clean_real.txt'
@@ -320,6 +322,83 @@ def create_hl_matrix(x, y):
     hl_y = np.vstack(tuple(y))
 
     return hl_x, hl_y
+
+def part4():
+    # TODO: finish this function - Shawnee
+
+    # load data
+    train_xs_r, test_xs_r, validation_xs_r, train_ys_r, test_ys_r, validation_ys_r = load_data(fn_real, 0)
+    train_xs_f, test_xs_f, validation_xs_f, train_ys_f, test_ys_f, validation_ys_f = load_data(fn_fake, 1)
+
+    train_x = np.concatenate((train_xs_r, train_xs_f))
+    train_y = np.concatenate((train_ys_r, train_ys_f))
+    validation_x = np.concatenate((validation_xs_r, validation_xs_f))
+    validation_y = np.concatenate((validation_ys_r, validation_ys_f))
+    test_x = np.concatenate((test_xs_r, test_xs_f))
+    test_y = np.concatenate((test_ys_r, test_ys_f))
+
+    train_x_vector, train_y_vector = create_hl_matrix(train_x, train_y)
+    validation_x_vector, validation_y_vector = create_hl_matrix(validation_x, validation_y)
+    test_x_vector, test_y_vector = create_hl_matrix(test_x, test_y)
+
+    x_train = torch.from_numpy(train_x_vector)
+    y_train = torch.from_numpy(train_y_vector)
+    x_val = torch.from_numpy(validation_x_vector)
+    y_val = torch.from_numpy(validation_y_vector)
+    x_test = torch.from_numpy(test_x_vector)
+    y_test = torch.from_numpy(test_y_vector)
+
+    # Hyper Parameters
+    input_size = len(train_x)
+    num_classes = 1
+    num_epochs = 5
+    batch_size = 64
+    learning_rate = 0.001
+
+    model = torch.nn.Sequential(
+        torch.nn.Linear(input_size, num_classes),
+        torch.nn.Sigmoid(),
+        torch.nn.Softmax(),
+    )
+
+    # Loss and Optimizer
+    # Set parameters to be updated.
+    loss_fn = nn.BCELoss()
+    optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
+    reg_lambda = 0.1
+
+    train_accs = []
+    val_accs = []
+    test_accs = []
+    epochs = []
+    # Training the Model
+    for epoch in range(num_epochs):
+
+        # calculate regularization term
+        l2_reg = None
+        for W in model.parameters():
+            if l2_reg is None:
+                l2_reg = W.norm(2)
+            else:
+                l2_reg = l2_reg + W.norm(2)
+
+        # forward pass
+        pred = model(train_x)
+        loss = loss_fn(pred, train_y) + (reg_lambda * l2_reg)
+        model.zero_grad()
+        loss.backward()
+        optimizer.step()
+
+        # Test the Model
+        # training set
+        # correct = 0
+        # total = 0
+        # for images, labels in test_loader:
+        #     images = Variable(images.view(-1, 28 * 28))
+        #     outputs = model(images)
+        #     _, predicted = torch.max(outputs.data, 1)
+        #     total += labels.size(0)
+        #     correct += (predicted == labels).sum()
 
 if __name__ == '__main__':
     train_xs_r, test_xs_r, validation_xs_r, train_ys_r, test_ys_r, validation_ys_r = load_data(fn_real, 0)
