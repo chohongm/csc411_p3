@@ -259,19 +259,22 @@ def part3a(train_xs_r, train_xs_f, train_ys_r, train_ys_f, \
     # compute NB probs of f & r given word for each word in the entire data set.
     # the top ten in Ps_f_w represents the ten words whose presence most strongly predicts that the news is fake.
     Ps_f_w, Ps_r_w = np.empty((num_words, 2), dtype=object), np.empty((num_words, 2), dtype=object)
+    print "Starting for loop"
     for i, word in enumerate(words):
+        print i, word
         P_f_w, P_r_w = get_naive_bayes_probs(P_r, P_f, P_w_r, P_w_f, np.array([[word]]))
         Ps_f_w[i] = [word, P_f_w]
         Ps_r_w[i] = [word, P_r_w]
-    
+    print "Done with first for loop"
     # The prob of fake given not word is sum of probs of fake given each word minus the prob of fake given the word.
     Ps_f_nw, Ps_r_nw = np.empty((num_words, 2), dtype=object), np.empty((num_words, 2), dtype=object)
     Ps_f_w_sum = np.sum(Ps_f_w[:,1])
     Ps_r_w_sum = np.sum(Ps_r_w[:,1])
     for i, word in enumerate(words):
+        print i, word
         Ps_f_nw[i] = [word, Ps_f_w_sum - Ps_f_w[i,1]]
         Ps_r_nw[i] = [word, Ps_r_w_sum - Ps_r_w[i,1]]
-    
+    print "Done with second for loop"
     pres_f = Ps_f_w[Ps_f_w[:,1].argsort()][:10,0]
     pres_r = Ps_r_w[Ps_r_w[:,1].argsort()][:10,0]
     abs_f = Ps_f_nw[Ps_f_nw[:,1].argsort()][:10,0]
@@ -286,10 +289,53 @@ def part3a(train_xs_r, train_xs_f, train_ys_r, train_ys_f, \
     # continue from here
     #---------------------------------------------------------------------------
 
+def get_keywords_list(dataset):
+
+    words = []
+
+    for hl in dataset:
+        # words_list = hl.split()
+        for word in hl:
+            if word not in words:
+                words.append(word)
+
+    return words
+
+def create_hl_matrix(x, y):
+
+    words = get_keywords_list(x)
+    num_words = len(words)
+    hl_x = []
+
+    for hl in x:
+        hl_words = []
+        for word in words:
+            if word in hl:
+                hl_words.append(1)
+            else:
+                hl_words.append(0)
+        hl_x.append(hl_words)
+
+    hl_x = np.vstack(tuple(hl_x))
+    hl_y = np.vstack(tuple(y))
+
+    return hl_x, hl_y
+
 if __name__ == '__main__':
     train_xs_r, test_xs_r, validation_xs_r, train_ys_r, test_ys_r, validation_ys_r = load_data(fn_real, 0)
     train_xs_f, test_xs_f, validation_xs_f, train_ys_f, test_ys_f, validation_ys_f = load_data(fn_fake, 1)
-    
+
+    train_xs = np.concatenate((train_xs_r, train_xs_f))
+    train_ys = np.concatenate((train_ys_r, train_ys_f))
+    # print train_ys
+
+    train_x_vector, train_y_vector = create_hl_matrix(train_xs, train_ys)
+
+    # print len(train_x_vector)
+    # print len(train_y_vector)
+
+    # print train_matrix
+
     # part1(train_xs_r, train_xs_f)
     # part2(train_xs_r, train_xs_f, train_ys_r, train_ys_f, validation_xs_r, validation_xs_f, validation_ys_r, \
     #       validation_ys_f, test_xs_r, test_xs_f, test_ys_r, test_ys_f)
