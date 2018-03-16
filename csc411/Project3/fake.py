@@ -144,12 +144,17 @@ def part1(train_real, train_fake):
 
 
 def get_naive_bayes_probs(P_r, P_f, P_w_r, P_w_f, xs_all):
+
+    P_hl_f = [get_product_of_small_nums(get_prob_of_hl_given_label(P_w_f, hl)) for hl in xs_all]
+    P_hl_r = [get_product_of_small_nums(get_prob_of_hl_given_label(P_w_r, hl)) for hl in xs_all]
+    P_hl = [((P_f * P_hl_f[i]) + (P_r * P_hl_r[i])) for i in range(len(xs_all))]
     
     # P_f_hl = P_f * P_hl_f
-    P_f_hl = np.array([P_f * get_product_of_small_nums(get_prob_of_hl_given_label(P_w_f, hl)) for hl in xs_all])
-    P_r_hl = np.array([P_r * get_product_of_small_nums(get_prob_of_hl_given_label(P_w_r, hl)) for hl in xs_all])
+    P_f_hl = np.array([(P_f * P_hl_f[i]) / float(P_hl[i]) for i in range(len(xs_all))])
+    P_r_hl = np.array([(P_r * P_hl_r[i]) / float(P_hl[i]) for i in range(len(xs_all))])
     
     return P_f_hl, P_r_hl
+
 
 
 def part2_graph(params, accs):
@@ -259,22 +264,20 @@ def part3a(train_xs_r, train_xs_f, train_ys_r, train_ys_f, \
     # compute NB probs of f & r given word for each word in the entire data set.
     # the top ten in Ps_f_w represents the ten words whose presence most strongly predicts that the news is fake.
     Ps_f_w, Ps_r_w = np.empty((num_words, 2), dtype=object), np.empty((num_words, 2), dtype=object)
-    print "Starting for loop"
+
     for i, word in enumerate(words):
-        print i, word
         P_f_w, P_r_w = get_naive_bayes_probs(P_r, P_f, P_w_r, P_w_f, np.array([[word]]))
         Ps_f_w[i] = [word, P_f_w]
         Ps_r_w[i] = [word, P_r_w]
-    print "Done with first for loop"
+
     # The prob of fake given not word is sum of probs of fake given each word minus the prob of fake given the word.
     Ps_f_nw, Ps_r_nw = np.empty((num_words, 2), dtype=object), np.empty((num_words, 2), dtype=object)
     Ps_f_w_sum = np.sum(Ps_f_w[:,1])
     Ps_r_w_sum = np.sum(Ps_r_w[:,1])
     for i, word in enumerate(words):
-        print i, word
         Ps_f_nw[i] = [word, Ps_f_w_sum - Ps_f_w[i,1]]
         Ps_r_nw[i] = [word, Ps_r_w_sum - Ps_r_w[i,1]]
-    print "Done with second for loop"
+
     pres_f = Ps_f_w[Ps_f_w[:,1].argsort()][:10,0]
     pres_r = Ps_r_w[Ps_r_w[:,1].argsort()][:10,0]
     abs_f = Ps_f_nw[Ps_f_nw[:,1].argsort()][:10,0]
@@ -367,6 +370,8 @@ def part4():
     x_train, y_train = create_hl_matrix(train_xs, train_ys, train_xs)
     x_validation, y_validation = create_hl_matrix(validation_xs, validation_ys, train_xs)
     x_test, y_test = create_hl_matrix(test_xs, test_ys, train_xs)
+    print x_test
+    print y_test
     # Hyper Parameters
     input_size = len(x_train.T)
     num_classes = 1
@@ -426,6 +431,7 @@ def part4():
             loss.backward(retain_graph=True)  # Compute the gradient
             optimizer.step()  # Use the gradient information to make a step
 
+
         # predict accuracy
         train_x = Variable(torch.from_numpy(x_train), requires_grad=False).float()
         train_y_pred = model(train_x).data.numpy()
@@ -455,11 +461,11 @@ def part4():
 
 
 if __name__ == '__main__':
-    # train_xs_r, test_xs_r, validation_xs_r, train_ys_r, test_ys_r, validation_ys_r = load_data(fn_real, 0)
-    # train_xs_f, test_xs_f, validation_xs_f, train_ys_f, test_ys_f, validation_ys_f = load_data(fn_fake, 1)
-    #
-    # train_xs = np.concatenate((train_xs_r, train_xs_f))
-    # train_ys = np.concatenate((train_ys_r, train_ys_f))
+    train_xs_r, test_xs_r, validation_xs_r, train_ys_r, test_ys_r, validation_ys_r = load_data(fn_real, 0)
+    train_xs_f, test_xs_f, validation_xs_f, train_ys_f, test_ys_f, validation_ys_f = load_data(fn_fake, 1)
+
+    train_xs = np.concatenate((train_xs_r, train_xs_f))
+    train_ys = np.concatenate((train_ys_r, train_ys_f))
     # print train_ys
 
     # print len(train_x_vector)
@@ -468,8 +474,8 @@ if __name__ == '__main__':
     # print train_matrix
 
     # part1(train_xs_r, train_xs_f)
-    # part2(train_xs_r, train_xs_f, train_ys_r, train_ys_f, validation_xs_r, validation_xs_f, validation_ys_r, \
-    #       validation_ys_f, test_xs_r, test_xs_f, test_ys_r, test_ys_f)
+    part2(train_xs_r, train_xs_f, train_ys_r, train_ys_f, validation_xs_r, validation_xs_f, validation_ys_r, \
+          validation_ys_f, test_xs_r, test_xs_f, test_ys_r, test_ys_f)
     # part3a(train_xs_r, train_xs_f, train_ys_r, train_ys_f, validation_xs_r, validation_xs_f, validation_ys_r, validation_ys_f)
 
-    train_accs, val_accs, test_accs, epochs = part4()
+    # part4()
