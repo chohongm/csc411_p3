@@ -6,6 +6,7 @@ import os
 import matplotlib.pyplot as plt
 import torch
 import torch.nn as nn
+from torch.autograd import Variable
 
 
 fn_fake, fn_real = 'clean_fake.txt', 'clean_real.txt'
@@ -234,9 +235,6 @@ def part2(train_xs_r, train_xs_f, train_ys_r, train_ys_f, validation_xs_r, valid
     print "Test accuracy: {0:.2f}%".format(test_accuracy * 100)
 
 
-
-
-
 def part3a(train_xs_r, train_xs_f, train_ys_r, train_ys_f, \
           test_xs_r, test_xs_f, test_ys_r, test_ys_f):
     words_counts = get_words_counts(train_xs_r, train_xs_f)
@@ -303,25 +301,54 @@ def get_keywords_list(dataset):
 
     return words
 
-def create_hl_matrix(x, y):
+def create_hl_matrix(x, y, train_set):
 
-    words = get_keywords_list(x)
-    num_words = len(words)
+    # get words in training set
+    words = get_keywords_list(train_set)
     hl_x = []
 
     for hl in x:
         hl_words = []
         for word in words:
             if word in hl:
-                hl_words.append(1)
+                hl_words.append(float(1))
             else:
-                hl_words.append(0)
+                hl_words.append(float(0))
         hl_x.append(hl_words)
 
-    hl_x = np.vstack(tuple(hl_x))
+    hl_x = np.vstack(tuple(hl_x)).astype('float64')
     hl_y = np.vstack(tuple(y))
 
     return hl_x, hl_y
+
+def get_accuracy(target, prediction):
+
+    count = 0
+    for i in range(len(target)):
+        if prediction[i][0] >= 0.5 and target[i][0] == 1:
+            count += 1
+        elif prediction[i][0] < 0.5 and target[i][0] == 0:
+            count += 1
+
+    acc = (count / float(len(target))) * 100
+    acc = round(acc, 2)
+
+    return acc
+
+
+def part4_graph(train_accs, val_accs, test_accs, epochs):
+
+    range = list(set(train_accs + val_accs + test_accs))
+
+    plt.yticks(np.arange(min(range), max(range)))
+    plt.plot(epochs, train_accs, 'r', label="Training Set")
+    plt.plot(epochs, val_accs, 'b', label="Validation Set")
+    plt.plot(epochs, test_accs, 'g', label="Test Set")
+    plt.xlabel("Epochs")
+    plt.ylabel("Accuracy (%)")
+    plt.title("Performance on all sets")
+    plt.grid(axis='y', linestyle='--')
+    plt.savefig(os.getcwd() + 'part4_graph.png')
 
 def part4():
     # TODO: finish this function - Shawnee
@@ -330,35 +357,27 @@ def part4():
     train_xs_r, test_xs_r, validation_xs_r, train_ys_r, test_ys_r, validation_ys_r = load_data(fn_real, 0)
     train_xs_f, test_xs_f, validation_xs_f, train_ys_f, test_ys_f, validation_ys_f = load_data(fn_fake, 1)
 
-    train_x = np.concatenate((train_xs_r, train_xs_f))
-    train_y = np.concatenate((train_ys_r, train_ys_f))
-    validation_x = np.concatenate((validation_xs_r, validation_xs_f))
-    validation_y = np.concatenate((validation_ys_r, validation_ys_f))
-    test_x = np.concatenate((test_xs_r, test_xs_f))
-    test_y = np.concatenate((test_ys_r, test_ys_f))
+    train_xs = np.concatenate((train_xs_r, train_xs_f))
+    train_ys = np.concatenate((train_ys_r, train_ys_f))
+    validation_xs = np.concatenate((validation_xs_r, validation_xs_f))
+    validation_ys = np.concatenate((validation_ys_r, validation_ys_f))
+    test_xs = np.concatenate((test_xs_r, test_xs_f))
+    test_ys = np.concatenate((test_ys_r, test_ys_f))
 
-    train_x_vector, train_y_vector = create_hl_matrix(train_x, train_y)
-    validation_x_vector, validation_y_vector = create_hl_matrix(validation_x, validation_y)
-    test_x_vector, test_y_vector = create_hl_matrix(test_x, test_y)
-
-    x_train = torch.from_numpy(train_x_vector)
-    y_train = torch.from_numpy(train_y_vector)
-    x_val = torch.from_numpy(validation_x_vector)
-    y_val = torch.from_numpy(validation_y_vector)
-    x_test = torch.from_numpy(test_x_vector)
-    y_test = torch.from_numpy(test_y_vector)
-
+    x_train, y_train = create_hl_matrix(train_xs, train_ys, train_xs)
+    x_validation, y_validation = create_hl_matrix(validation_xs, validation_ys, train_xs)
+    x_test, y_test = create_hl_matrix(test_xs, test_ys, train_xs)
     # Hyper Parameters
-    input_size = len(train_x)
+    input_size = len(x_train.T)
     num_classes = 1
-    num_epochs = 5
+    num_epochs = 200
     batch_size = 64
-    learning_rate = 0.001
+    learning_rate = 0.1
 
     model = torch.nn.Sequential(
         torch.nn.Linear(input_size, num_classes),
         torch.nn.Sigmoid(),
-        torch.nn.Softmax(),
+        torch.nn.Softmax(dim=1),
     )
 
     # Loss and Optimizer
@@ -374,6 +393,9 @@ def part4():
     # Training the Model
     for epoch in range(num_epochs):
 
+        print "Epoch: ", epoch
+        epochs.append(epoch)
+
         # calculate regularization term
         l2_reg = None
         for W in model.parameters():
@@ -382,33 +404,63 @@ def part4():
             else:
                 l2_reg = l2_reg + W.norm(2)
 
-        # forward pass
-        pred = model(train_x)
-        loss = loss_fn(pred, train_y) + (reg_lambda * l2_reg)
-        model.zero_grad()
-        loss.backward()
-        optimizer.step()
+        np.random.seed(0)
+        # torch.manual_seed(0)
+        train_idx = np.random.permutation(range(x_train.shape[0]))
 
-        # Test the Model
-        # training set
-        # correct = 0
-        # total = 0
-        # for images, labels in test_loader:
-        #     images = Variable(images.view(-1, 28 * 28))
-        #     outputs = model(images)
-        #     _, predicted = torch.max(outputs.data, 1)
-        #     total += labels.size(0)
-        #     correct += (predicted == labels).sum()
+        for i in range(0, x_train.shape[0], batch_size):
+            idx = train_idx[i:i + batch_size]  # get indices of current batch
+
+            # TODO: improve accuracy
+            # Get pair of (X, y) of the current minibatch/chunk
+            x_mb = Variable(torch.from_numpy(x_train[idx]), requires_grad=False).float()
+            y_mb = Variable(torch.from_numpy(y_train[idx]), requires_grad=False).float()
+
+            y_pred = model(x_mb)
+            loss = loss_fn(y_pred, y_mb) + (reg_lambda * l2_reg)
+
+            if i % 50 == 0:
+                print "Loss: ", loss
+
+            model.zero_grad()  # Zero out the previous gradient computation
+            loss.backward(retain_graph=True)  # Compute the gradient
+            optimizer.step()  # Use the gradient information to make a step
+
+        # predict accuracy
+        train_x = Variable(torch.from_numpy(x_train), requires_grad=False).float()
+        train_y_pred = model(train_x).data.numpy()
+        print train_y_pred
+        print y_train
+        acc_train = get_accuracy(y_train, train_y_pred)
+        train_accs.append(acc_train)
+
+        validation_x = Variable(torch.from_numpy(x_validation), requires_grad=False).float()
+        validation_y_pred = model(validation_x).data.numpy()
+        acc_validation = get_accuracy(y_validation, validation_y_pred)
+        val_accs.append(acc_validation)
+
+        test_x = Variable(torch.from_numpy(x_test), requires_grad=False).float()
+        test_y_pred = model(test_x).data.numpy()
+        acc_test = get_accuracy(y_test, test_y_pred)
+        test_accs.append(acc_test)
+
+        print "Epoch: ", epoch
+        print "Training accuracy: {}%".format(acc_train)
+        print "Validation accuracy: {}%".format(acc_validation)
+        print "Test accuracy: {}%".format(acc_test)
+
+    # plot graph
+    part4_graph(train_accs, val_accs, test_accs, epochs)
+    plt.clf()
+
 
 if __name__ == '__main__':
-    train_xs_r, test_xs_r, validation_xs_r, train_ys_r, test_ys_r, validation_ys_r = load_data(fn_real, 0)
-    train_xs_f, test_xs_f, validation_xs_f, train_ys_f, test_ys_f, validation_ys_f = load_data(fn_fake, 1)
-
-    train_xs = np.concatenate((train_xs_r, train_xs_f))
-    train_ys = np.concatenate((train_ys_r, train_ys_f))
+    # train_xs_r, test_xs_r, validation_xs_r, train_ys_r, test_ys_r, validation_ys_r = load_data(fn_real, 0)
+    # train_xs_f, test_xs_f, validation_xs_f, train_ys_f, test_ys_f, validation_ys_f = load_data(fn_fake, 1)
+    #
+    # train_xs = np.concatenate((train_xs_r, train_xs_f))
+    # train_ys = np.concatenate((train_ys_r, train_ys_f))
     # print train_ys
-
-    train_x_vector, train_y_vector = create_hl_matrix(train_xs, train_ys)
 
     # print len(train_x_vector)
     # print len(train_y_vector)
@@ -419,8 +471,5 @@ if __name__ == '__main__':
     # part2(train_xs_r, train_xs_f, train_ys_r, train_ys_f, validation_xs_r, validation_xs_f, validation_ys_r, \
     #       validation_ys_f, test_xs_r, test_xs_f, test_ys_r, test_ys_f)
     # part3a(train_xs_r, train_xs_f, train_ys_r, train_ys_f, validation_xs_r, validation_xs_f, validation_ys_r, validation_ys_f)
-    
-    
 
-    
-        
+    train_accs, val_accs, test_accs, epochs = part4()
