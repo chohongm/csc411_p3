@@ -19,8 +19,7 @@ def load_data(fn, class_label):
     
     train_ratio, test_ratio, validation_ratio = 0.70, 0.15, 0.15
     ratios = [train_ratio, test_ratio, validation_ratio]
-    
-    lines = [] 
+
     with open(fn, 'r') as f:
         lines = f.readlines()
         lines = np.array([line.split() for line in lines])
@@ -79,19 +78,6 @@ def get_prob_words_given_label(words_counts, label, num_labeled_data, m, p):
 
     return P_w_l
 
-# def get_prob_nowords_given_label(P_w_r, P_w_f):
-#
-#     P_nw_r, P_nw_f = {}, {}
-#
-#     for word, P_w in P_w_r.items():
-#         P_nw_r[word] = 1 - P_w
-#
-#     for word, P_w in P_w_f.items():
-#         P_nw_f[word] = 1 - P_w
-#
-#     return P_nw_r, P_nw_f
-
-
 def get_product_of_small_nums(small_nums):
     prod = 0
     
@@ -99,29 +85,20 @@ def get_product_of_small_nums(small_nums):
         try:
             prod += math.log(float(small_num))
         except ValueError:
-            print("ValueError:",  small_num)
-
-    # print "prod: ", prod
-    # print "exponent prod: ", math.exp(prod)
+            print "ValueError:", small_num
 
     return math.exp(prod)
 
-
 def get_prob_of_hl_given_label(P_w_l, words_in_line):
+
     P_words_in_hl = np.empty([len(P_w_l)])
     i = 0
-    # print "Probability of words given label: "
-    # print P_w_l
     for word, P_w in P_w_l.items():
         if word in words_in_line:
             P_words_in_hl[i] = P_w
-            # print "Probability of word {} appearing in headline: ".format(word), P_words_in_hl[i]
         else:
             P_words_in_hl[i] = 1 - P_w
-            # if word == 'donald':
-            #     print "Probability of word {} NOT appearing in headline: ".format(word), P_words_in_hl[i]
         i += 1
-    # print "Probability of word '{}' in headline: {}".format(words_in_line[0], P_words_in_hl)
 
     return P_words_in_hl
     
@@ -132,41 +109,25 @@ def part1(train_real, train_fake):
     words_counts = get_words_counts(train_real, train_fake)
     words_counts.pop('trump')
 
-    # get the most common words in each dataset
-    real_words = {}
-    fake_words = {}
-    for word in words_counts:
-        real_words[word] = words_counts[word][0]
-        fake_words[word] = words_counts[word][1]
+    real_common = get_prob_words_given_label(words_counts, 0, len(train_real), 1, 0.1)
+    fake_common = get_prob_words_given_label(words_counts, 1, len(train_fake), 1, 0.1)
 
-    real_common = []
-    fake_common = []
-
-    # TODO: calculate P(word|real) and P(word|fake) instead of number of appearances
-
-    for i in range(10):
-        max_word_real = max(real_words, key=real_words.get)
-        max_val_real = real_words.pop(max_word_real)
-        real_common.append(tuple((max_word_real, max_val_real)))
-        max_word_fake = max(fake_words, key=fake_words.get)
-        max_val_fake = fake_words.pop(max_word_fake)
-        fake_common.append(tuple((max_word_fake, max_val_fake)))
-
-    print "10 most common words in real headlines: "
-    print real_common
-    print "10 most common words in fake headlines: "
-    print fake_common
-
+    print "5 most common words in real headlines: "
+    print sorted(real_common.items(), key=operator.itemgetter(1), reverse=True)[:5]
+    print "5 most common words in fake headlines: "
+    print sorted(fake_common.items(), key=operator.itemgetter(1), reverse=True)[:5]
     print "\n"
+
+    print "3 keywords that may be useful: "
     print "Word: 'donald'"
-    print "# of appearances in real headlines: ", words_counts['donald'][0]
-    print "# of appearances in fake headlines: ", words_counts['donald'][1]
+    print "Probability of appearing in real headlines: ", real_common['donald']
+    print "Probability of appearing in fake headlines: ", fake_common['donald']
     print "Word: 'the'"
-    print "# of appearances in real headlines: ", words_counts['the'][0]
-    print "# of appearances in fake headlines: ", words_counts['the'][1]
+    print "Probability of appearing in real headlines: ", real_common['the']
+    print "Probability of appearing in fake headlines: ", fake_common['the']
     print "Word: 'us'"
-    print "# of appearances in real headlines: ", words_counts['us'][0]
-    print "# of appearances in fake headlines: ", words_counts['us'][1]
+    print "Probability of appearing in real headlines: ", real_common['us']
+    print "Probability of appearing in fake headlines: ", fake_common['us']
 
 
 def get_naive_bayes_probs(P_r, P_f, P_w_r, P_w_f, xs_all):
@@ -200,21 +161,8 @@ def get_NB_probs_absence(P_r, P_f, P_w_r, P_w_f):
 
     P_w = (P_w_r * P_r) + (P_w_f * P_f)
 
-    # print "P_w_r: ", P_w_r
-    # print "P_w_f: ", P_w_f
-    # print "P_w: ", P_w
-    #
-    # print "1 - P_w_r: ", float(1) - P_w_r
-    # print "1 - P_w_f: ", float(1) - P_w_f
-    # print "1 - P_w: ", float(1) - P_w
-    #
-    # print "P_r: ", P_r
-    # print "P_f: ", P_f
-
     P_r_w = ((float(1) - P_w_r) * P_r) / (float(1) - float(P_w))
     P_f_w = ((float(1) - P_w_f) * P_f) / (float(1) - float(P_w))
-
-    # print P_f_w, P_r_w
 
     return P_f_w, P_r_w
 
@@ -227,14 +175,13 @@ def part2_graph(params, accs):
     plt.plot(x, y)
     plt.xticks(x, labels, rotation='vertical')
     # Tweak spacing to prevent clipping of tick-labels
-    plt.subplots_adjust(bottom=0.15)
+    plt.subplots_adjust(left=0.125, bottom=0.25, right=0.9, top=0.9)
 
     plt.xlabel("Values for m and p")
     plt.ylabel("Validation accuracy")
     plt.title("Validation Accuracy with Varying Values of m and p")
     plt.grid(axis='y', linestyle='--')
-    # plt.show()
-    plt.savefig(os.getcwd() + 'part2_graph.png')
+    plt.savefig(os.getcwd() + '/part2_graph.png')
 
 
 def part2(train_xs_r, train_xs_f, train_ys_r, train_ys_f, validation_xs_r, validation_xs_f, validation_ys_r, \
@@ -291,7 +238,6 @@ def part2(train_xs_r, train_xs_f, train_ys_r, train_ys_f, validation_xs_r, valid
     predicted_ys_train = np.round(P_f_hl_train / (P_f_hl_train + P_r_hl_train))
     train_accuracy = np.sum(predicted_ys_train == train_ys_all) / float(len(train_ys_all))
 
-
     P_f_hl_test, P_r_hl_test = get_naive_bayes_probs(P_r, P_f, P_w_r, P_w_f, test_xs_all)
     # Since there are more than one class, P_f_hl = (P_f * P_hl_f) / sum(P_c * P_hl_c for each class c)
     predicted_ys_test = np.round(P_f_hl_test / (P_f_hl_test + P_r_hl_test))
@@ -306,7 +252,6 @@ def part3a(train_xs_r, train_xs_f, train_ys_r, train_ys_f):
     
     num_real_data = len(train_ys_r)
     num_fake_data = len(train_ys_f)
-    # print num_real_data, num_fake_data
     num_total_data = num_real_data + num_fake_data
     
     P_r = num_real_data / float(num_total_data)
@@ -515,16 +460,10 @@ if __name__ == '__main__':
 
     train_xs = np.concatenate((train_xs_r, train_xs_f))
     train_ys = np.concatenate((train_ys_r, train_ys_f))
-    # print train_ys
-
-    # print len(train_x_vector)
-    # print len(train_y_vector)
-
-    # print train_matrix
 
     # part1(train_xs_r, train_xs_f)
-    # part2(train_xs_r, train_xs_f, train_ys_r, train_ys_f, validation_xs_r, validation_xs_f, validation_ys_r, \
-    #       validation_ys_f, test_xs_r, test_xs_f, test_ys_r, test_ys_f)
-    part3a(train_xs_r, train_xs_f, train_ys_r, train_ys_f)
+    part2(train_xs_r, train_xs_f, train_ys_r, train_ys_f, validation_xs_r, validation_xs_f, validation_ys_r, \
+          validation_ys_f, test_xs_r, test_xs_f, test_ys_r, test_ys_f)
+    # part3a(train_xs_r, train_xs_f, train_ys_r, train_ys_f)
 
     # part4()
