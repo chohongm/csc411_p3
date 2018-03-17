@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 import torch
 import torch.nn as nn
 from torch.autograd import Variable
+import operator
 
 
 fn_fake, fn_real = 'clean_fake.txt', 'clean_real.txt'
@@ -51,6 +52,7 @@ def get_words_counts(data_real, data_fake):
     words_counts = {}
 
     for hl in data_real:
+        hl = list(set(hl))  # remove duplicate words
         for word in hl:
             if word not in words_counts:
                 words_counts[word] = [1, 0]
@@ -58,6 +60,7 @@ def get_words_counts(data_real, data_fake):
                 words_counts[word][0] += 1
 
     for hl in data_fake:
+        hl = list(set(hl))  # remove duplicate words
         for word in hl:
             if word not in words_counts:
                 words_counts[word] = [0, 1]
@@ -67,14 +70,26 @@ def get_words_counts(data_real, data_fake):
     return words_counts
 
 
-def get_prob_words_given_label(words_counts, label, num_labeled_data, m , p):
+def get_prob_words_given_label(words_counts, label, num_labeled_data, m, p):
     # again, label is 0 for real and 1 for fake. This number refers to index
     # of words_counts[word] in which word count for that label is stored.
     P_w_l = {}
     for word, counts in words_counts.items():
-        P_w_l[word] = (min(counts[label], num_labeled_data)  + m*p) / (num_labeled_data + m)         
-        
+        P_w_l[word] = (counts[label] + m*p) / float((num_labeled_data + m))
+
     return P_w_l
+
+# def get_prob_nowords_given_label(P_w_r, P_w_f):
+#
+#     P_nw_r, P_nw_f = {}, {}
+#
+#     for word, P_w in P_w_r.items():
+#         P_nw_r[word] = 1 - P_w
+#
+#     for word, P_w in P_w_f.items():
+#         P_nw_f[word] = 1 - P_w
+#
+#     return P_nw_r, P_nw_f
 
 
 def get_product_of_small_nums(small_nums):
@@ -82,23 +97,32 @@ def get_product_of_small_nums(small_nums):
     
     for small_num in small_nums:
         try:
-            prod += math.log(small_num)
+            prod += math.log(float(small_num))
         except ValueError:
-            print(small_num)
-    
+            print("ValueError:",  small_num)
+
+    # print "prod: ", prod
+    # print "exponent prod: ", math.exp(prod)
+
     return math.exp(prod)
 
 
 def get_prob_of_hl_given_label(P_w_l, words_in_line):
     P_words_in_hl = np.empty([len(P_w_l)])
     i = 0
+    # print "Probability of words given label: "
+    # print P_w_l
     for word, P_w in P_w_l.items():
         if word in words_in_line:
             P_words_in_hl[i] = P_w
+            # print "Probability of word {} appearing in headline: ".format(word), P_words_in_hl[i]
         else:
             P_words_in_hl[i] = 1 - P_w
+            # if word == 'donald':
+            #     print "Probability of word {} NOT appearing in headline: ".format(word), P_words_in_hl[i]
         i += 1
-    
+    # print "Probability of word '{}' in headline: {}".format(words_in_line[0], P_words_in_hl)
+
     return P_words_in_hl
     
     
@@ -117,6 +141,8 @@ def part1(train_real, train_fake):
 
     real_common = []
     fake_common = []
+
+    # TODO: calculate P(word|real) and P(word|fake) instead of number of appearances
 
     for i in range(10):
         max_word_real = max(real_words, key=real_words.get)
@@ -148,14 +174,49 @@ def get_naive_bayes_probs(P_r, P_f, P_w_r, P_w_f, xs_all):
     P_hl_f = [get_product_of_small_nums(get_prob_of_hl_given_label(P_w_f, hl)) for hl in xs_all]
     P_hl_r = [get_product_of_small_nums(get_prob_of_hl_given_label(P_w_r, hl)) for hl in xs_all]
     P_hl = [((P_f * P_hl_f[i]) + (P_r * P_hl_r[i])) for i in range(len(xs_all))]
-    
+
+    # print "Probabilities for word: ", xs_all[0]
+    # print P_hl_f, P_hl_r, P_hl;
+
     # P_f_hl = P_f * P_hl_f
-    P_f_hl = np.array([(P_f * P_hl_f[i]) / float(P_hl[i]) for i in range(len(xs_all))])
-    P_r_hl = np.array([(P_r * P_hl_r[i]) / float(P_hl[i]) for i in range(len(xs_all))])
-    
+    P_f_hl = np.array([((P_f * P_hl_f[i]) / float(P_hl[i])) for i in range(len(xs_all))])
+    P_r_hl = np.array([((P_r * P_hl_r[i]) / float(P_hl[i])) for i in range(len(xs_all))])
+
+    # print P_f_hl, P_r_hl
     return P_f_hl, P_r_hl
 
+def get_NB_probs_presence(P_r, P_f, P_w_r, P_w_f):
 
+    P_w = (P_w_r * P_r) + (P_w_f * P_f)
+
+    P_r_w = (P_w_r * P_r) / float(P_w)
+    P_f_w = (P_w_f * P_f) / float(P_w)
+
+    # print P_f_w, P_r_w
+
+    return P_f_w, P_r_w
+
+def get_NB_probs_absence(P_r, P_f, P_w_r, P_w_f):
+
+    P_w = (P_w_r * P_r) + (P_w_f * P_f)
+
+    # print "P_w_r: ", P_w_r
+    # print "P_w_f: ", P_w_f
+    # print "P_w: ", P_w
+    #
+    # print "1 - P_w_r: ", float(1) - P_w_r
+    # print "1 - P_w_f: ", float(1) - P_w_f
+    # print "1 - P_w: ", float(1) - P_w
+    #
+    # print "P_r: ", P_r
+    # print "P_f: ", P_f
+
+    P_r_w = ((float(1) - P_w_r) * P_r) / (float(1) - float(P_w))
+    P_f_w = ((float(1) - P_w_f) * P_f) / (float(1) - float(P_w))
+
+    # print P_f_w, P_r_w
+
+    return P_f_w, P_r_w
 
 def part2_graph(params, accs):
 
@@ -240,15 +301,13 @@ def part2(train_xs_r, train_xs_f, train_ys_r, train_ys_f, validation_xs_r, valid
     print "Test accuracy: {0:.2f}%".format(test_accuracy * 100)
 
 
-def part3a(train_xs_r, train_xs_f, train_ys_r, train_ys_f, \
-          test_xs_r, test_xs_f, test_ys_r, test_ys_f):
+def part3a(train_xs_r, train_xs_f, train_ys_r, train_ys_f):
     words_counts = get_words_counts(train_xs_r, train_xs_f)
     
     num_real_data = len(train_ys_r)
     num_fake_data = len(train_ys_f)
+    # print num_real_data, num_fake_data
     num_total_data = num_real_data + num_fake_data
-    test_xs_all = np.concatenate((test_xs_f, test_xs_r))
-    test_ys_all = np.concatenate((test_ys_f, test_ys_r))
     
     P_r = num_real_data / float(num_total_data)
     P_f = 1 - P_r
@@ -259,38 +318,28 @@ def part3a(train_xs_r, train_xs_f, train_ys_r, train_ys_f, \
     P_w_f = get_prob_words_given_label(words_counts, 1, num_fake_data, m, p)
 
     words = words_counts.keys()
-    num_words = len(words)
-    
+
     # compute NB probs of f & r given word for each word in the entire data set.
     # the top ten in Ps_f_w represents the ten words whose presence most strongly predicts that the news is fake.
-    Ps_f_w, Ps_r_w = np.empty((num_words, 2), dtype=object), np.empty((num_words, 2), dtype=object)
+    Ps_f_w, Ps_r_w = {}, {}
+    Ps_f_nw, Ps_r_nw = {}, {}
+    for word in words:
+        P_f_w, P_r_w = get_NB_probs_presence(P_r, P_f, P_w_r[word], P_w_f[word])
+        Ps_f_w[word] = P_f_w
+        Ps_r_w[word] = P_r_w
+        P_f_nw, P_r_nw = get_NB_probs_absence(P_r, P_f, P_w_r[word], P_w_f[word])
+        Ps_f_nw[word] = P_f_nw
+        Ps_r_nw[word] = P_r_nw
 
-    for i, word in enumerate(words):
-        P_f_w, P_r_w = get_naive_bayes_probs(P_r, P_f, P_w_r, P_w_f, np.array([[word]]))
-        Ps_f_w[i] = [word, P_f_w]
-        Ps_r_w[i] = [word, P_r_w]
+    pres_f = sorted(Ps_f_w.keys(), key=Ps_f_w.get, reverse=True)[:10]
+    pres_r = sorted(Ps_r_w.keys(), key=Ps_r_w.get, reverse=True)[:10]
+    abs_f = sorted(Ps_f_nw.keys(), key=Ps_f_nw.get, reverse=True)[:10]
+    abs_r = sorted(Ps_r_nw.keys(), key=Ps_r_nw.get, reverse=True)[:10]
 
-    # The prob of fake given not word is sum of probs of fake given each word minus the prob of fake given the word.
-    Ps_f_nw, Ps_r_nw = np.empty((num_words, 2), dtype=object), np.empty((num_words, 2), dtype=object)
-    Ps_f_w_sum = np.sum(Ps_f_w[:,1])
-    Ps_r_w_sum = np.sum(Ps_r_w[:,1])
-    for i, word in enumerate(words):
-        Ps_f_nw[i] = [word, Ps_f_w_sum - Ps_f_w[i,1]]
-        Ps_r_nw[i] = [word, Ps_r_w_sum - Ps_r_w[i,1]]
-
-    pres_f = Ps_f_w[Ps_f_w[:,1].argsort()][:10,0]
-    pres_r = Ps_r_w[Ps_r_w[:,1].argsort()][:10,0]
-    abs_f = Ps_f_nw[Ps_f_nw[:,1].argsort()][:10,0]
-    abs_r = Ps_r_nw[Ps_r_nw[:,1].argsort()][:10,0]
-    
     print "10 words whose presence most strongly predicts that the news is real: ", pres_r
     print "10 words whose absence most strongly predicts that the news is real: ", abs_r
     print "10 words whose presence most strongly predicts that the news is fake: ", pres_f
     print "10 words whose absence most strongly predicts that the news is fake: ", abs_f
-    
-    #---------------------------------------------------------------------------
-    # continue from here
-    #---------------------------------------------------------------------------
 
 def get_keywords_list(dataset):
 
@@ -354,7 +403,7 @@ def part4_graph(train_accs, val_accs, test_accs, epochs):
     plt.savefig(os.getcwd() + 'part4_graph.png')
 
 def part4():
-    # TODO: finish this function - Shawnee
+    # TODO: finish this function
 
     # load data
     train_xs_r, test_xs_r, validation_xs_r, train_ys_r, test_ys_r, validation_ys_r = load_data(fn_real, 0)
@@ -474,8 +523,8 @@ if __name__ == '__main__':
     # print train_matrix
 
     # part1(train_xs_r, train_xs_f)
-    part2(train_xs_r, train_xs_f, train_ys_r, train_ys_f, validation_xs_r, validation_xs_f, validation_ys_r, \
-          validation_ys_f, test_xs_r, test_xs_f, test_ys_r, test_ys_f)
-    # part3a(train_xs_r, train_xs_f, train_ys_r, train_ys_f, validation_xs_r, validation_xs_f, validation_ys_r, validation_ys_f)
+    # part2(train_xs_r, train_xs_f, train_ys_r, train_ys_f, validation_xs_r, validation_xs_f, validation_ys_r, \
+    #       validation_ys_f, test_xs_r, test_xs_f, test_ys_r, test_ys_f)
+    part3a(train_xs_r, train_xs_f, train_ys_r, train_ys_f)
 
     # part4()
