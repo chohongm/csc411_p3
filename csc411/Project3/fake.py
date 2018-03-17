@@ -8,6 +8,7 @@ import torch
 import torch.nn as nn
 from torch.autograd import Variable
 import operator
+from sklearn.feature_extraction.text import ENGLISH_STOP_WORDS
 
 
 fn_fake, fn_real = 'clean_fake.txt', 'clean_real.txt'
@@ -247,7 +248,9 @@ def part2(train_xs_r, train_xs_f, train_ys_r, train_ys_f, validation_xs_r, valid
     print "Test accuracy: {0:.2f}%".format(test_accuracy * 100)
 
 
-def part3a(train_xs_r, train_xs_f, train_ys_r, train_ys_f):
+def part3(train_xs_r, train_xs_f, train_ys_r, train_ys_f):
+
+    ##### PART 3A #####
     words_counts = get_words_counts(train_xs_r, train_xs_f)
     
     num_real_data = len(train_ys_r)
@@ -276,15 +279,43 @@ def part3a(train_xs_r, train_xs_f, train_ys_r, train_ys_f):
         Ps_f_nw[word] = P_f_nw
         Ps_r_nw[word] = P_r_nw
 
-    pres_f = sorted(Ps_f_w.keys(), key=Ps_f_w.get, reverse=True)[:10]
-    pres_r = sorted(Ps_r_w.keys(), key=Ps_r_w.get, reverse=True)[:10]
-    abs_f = sorted(Ps_f_nw.keys(), key=Ps_f_nw.get, reverse=True)[:10]
-    abs_r = sorted(Ps_r_nw.keys(), key=Ps_r_nw.get, reverse=True)[:10]
+    pres_f = sorted(Ps_f_w.keys(), key=Ps_f_w.get, reverse=True)
+    pres_r = sorted(Ps_r_w.keys(), key=Ps_r_w.get, reverse=True)
+    abs_f = sorted(Ps_f_nw.keys(), key=Ps_f_nw.get, reverse=True)
+    abs_r = sorted(Ps_r_nw.keys(), key=Ps_r_nw.get, reverse=True)
 
-    print "10 words whose presence most strongly predicts that the news is real: ", pres_r
-    print "10 words whose absence most strongly predicts that the news is real: ", abs_r
-    print "10 words whose presence most strongly predicts that the news is fake: ", pres_f
-    print "10 words whose absence most strongly predicts that the news is fake: ", abs_f
+    print "10 words whose presence most strongly predicts that the news is real: ", pres_r[:10]
+    print "10 words whose absence most strongly predicts that the news is real: ", abs_r[:10]
+    print "10 words whose presence most strongly predicts that the news is fake: ", pres_f[:10]
+    print "10 words whose absence most strongly predicts that the news is fake: ", abs_f[:10]
+    print "\n"
+
+    ##### PART 3B #####
+    remove_stopwords(pres_f, pres_r, abs_f, abs_r)
+    print "10 non-stopwords whose presence most strongly predicts that the news is real: ", pres_r[:10]
+    print "10 non-stopwords whose absence most strongly predicts that the news is real: ", abs_r[:10]
+    print "10 non-stopwords whose presence most strongly predicts that the news is fake: ", pres_f[:10]
+    print "10 non-stopwords whose absence most strongly predicts that the news is fake: ", abs_f[:10]
+
+
+def remove_stopwords(pres_f, pres_r, abs_f, abs_r):
+
+    stopwords = []
+
+    for stopword in ENGLISH_STOP_WORDS:
+        if stopword in (pres_f or pres_r or abs_f or abs_r):
+            stopwords.append(stopword)
+
+    for stopword in stopwords:
+        if stopword in pres_f:
+            pres_f.remove(stopword)
+        if stopword in pres_r:
+            pres_r.remove(stopword)
+        if stopword in abs_f:
+            abs_f.remove(stopword)
+        if stopword in abs_r:
+            abs_r.remove(stopword)
+
 
 def get_keywords_list(dataset):
 
@@ -462,8 +493,8 @@ if __name__ == '__main__':
     train_ys = np.concatenate((train_ys_r, train_ys_f))
 
     # part1(train_xs_r, train_xs_f)
-    part2(train_xs_r, train_xs_f, train_ys_r, train_ys_f, validation_xs_r, validation_xs_f, validation_ys_r, \
-          validation_ys_f, test_xs_r, test_xs_f, test_ys_r, test_ys_f)
-    # part3a(train_xs_r, train_xs_f, train_ys_r, train_ys_f)
+    # part2(train_xs_r, train_xs_f, train_ys_r, train_ys_f, validation_xs_r, validation_xs_f, validation_ys_r, \
+    #       validation_ys_f, test_xs_r, test_xs_f, test_ys_r, test_ys_f)
+    part3(train_xs_r, train_xs_f, train_ys_r, train_ys_f)
 
     # part4()
