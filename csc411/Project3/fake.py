@@ -104,32 +104,6 @@ def get_prob_of_hl_given_label(P_w_l, words_in_line):
 
     return P_words_in_hl
 
-def part1(train_real, train_fake):
-
-    # get words count from each real and fake dataset
-    words_counts = get_words_counts(train_real, train_fake)
-    words_counts.pop('trump')
-
-    real_common = get_prob_words_given_label(words_counts, 0, len(train_real), 1, 0.1)
-    fake_common = get_prob_words_given_label(words_counts, 1, len(train_fake), 1, 0.1)
-
-    print "5 most common words in real headlines: "
-    print sorted(real_common.items(), key=operator.itemgetter(1), reverse=True)[:5]
-    print "5 most common words in fake headlines: "
-    print sorted(fake_common.items(), key=operator.itemgetter(1), reverse=True)[:5]
-    print "\n"
-
-    print "3 keywords that may be useful: "
-    print "Word: 'donald'"
-    print "Probability of appearing in real headlines: ", real_common['donald']
-    print "Probability of appearing in fake headlines: ", fake_common['donald']
-    print "Word: 'the'"
-    print "Probability of appearing in real headlines: ", real_common['the']
-    print "Probability of appearing in fake headlines: ", fake_common['the']
-    print "Word: 'us'"
-    print "Probability of appearing in real headlines: ", real_common['us']
-    print "Probability of appearing in fake headlines: ", fake_common['us']
-
 def get_naive_bayes_probs(P_r, P_f, P_w_r, P_w_f, xs_all):
 
     P_hl_f = [get_product_of_small_nums(get_prob_of_hl_given_label(P_w_f, hl)) for hl in xs_all]
@@ -165,134 +139,6 @@ def get_NB_probs_absence(P_r, P_f, P_w_r, P_w_f):
     P_f_w = ((float(1) - P_w_f) * P_f) / (float(1) - float(P_w))
 
     return P_f_w, P_r_w
-
-def part2_graph(params, accs):
-
-    x = range(len(params))
-    y = accs
-    labels = ['m = {}\np = {}'.format(param[0], param[1]) for param in params]
-
-    plt.plot(x, y)
-    plt.xticks(x, labels, rotation='vertical')
-    # Tweak spacing to prevent clipping of tick-labels
-    plt.subplots_adjust(left=0.125, bottom=0.25, right=0.9, top=0.9)
-
-    plt.xlabel("Values for m and p")
-    plt.ylabel("Validation accuracy")
-    plt.title("Validation Accuracy with Varying Values of m and p")
-    plt.grid(axis='y', linestyle='--')
-    plt.savefig(os.getcwd() + '/part2_graph.png')
-
-def part2(train_xs_r, train_xs_f, train_ys_r, train_ys_f, validation_xs_r, validation_xs_f, validation_ys_r, \
-          validation_ys_f, test_xs_r, test_xs_f, test_ys_r, test_ys_f):
-    # Refer to page 18-23 in http://www.teach.cs.toronto.edu/~csc411h/winter/lec/week5/generative.pdf    
-    words_counts = get_words_counts(train_xs_r, train_xs_f)
-    
-    num_real_data = len(train_ys_r)
-    num_fake_data = len(train_ys_f)
-    num_total_data = num_real_data + num_fake_data
-    validation_xs_all = np.concatenate((validation_xs_f, validation_xs_r))
-    validation_ys_all = np.concatenate((validation_ys_f, validation_ys_r))
-    train_xs_all = np.concatenate((train_xs_f, train_xs_r))
-    train_ys_all = np.concatenate((train_ys_f, train_ys_r))
-    test_xs_all = np.concatenate((test_xs_f, test_xs_r))
-    test_ys_all = np.concatenate((test_ys_f, test_ys_r))
-
-    P_r = num_real_data / float(num_total_data)
-    P_f = 1 - P_r
-    
-    ms = [0.01, 0.1, 1, 10, 100]
-    ps = [0.00001, 0.001, 0.1]
-    params = []
-    accs = []
-            
-    print "Naive-Bayes classification (validation performance)\n"
-    i = 1
-    for m in ms:
-        for p in ps:
-            P_w_r = get_prob_words_given_label(words_counts, 0, num_real_data, m, p)
-            P_w_f = get_prob_words_given_label(words_counts, 1, num_fake_data, m, p)
-
-            P_f_hl, P_r_hl = get_naive_bayes_probs(P_r, P_f, P_w_r, P_w_f, validation_xs_all)
-            # Since there are more than one class, P_f_hl = (P_f * P_hl_f) / sum(P_c * P_hl_c for each class c)
-            predicted_ys = np.round(P_f_hl / (P_f_hl + P_r_hl))
-            validation_accuracy = np.sum(predicted_ys == validation_ys_all) / float(len(validation_ys_all))
-            print "===== Test {} =====\nm: {}\np: {}\naccuracy: {}\n".format(i, m, p, validation_accuracy)
-
-            params.append(tuple((m, p)))
-            accs.append(validation_accuracy)
-
-            i += 1
-
-    # plot graph of test results
-    part2_graph(params, accs)
-    plt.clf()
-
-    print "Final performance on training and test sets with m = 1 and p = 0.1"
-    P_w_r = get_prob_words_given_label(words_counts, 0, num_real_data, 1, 0.1)
-    P_w_f = get_prob_words_given_label(words_counts, 1, num_fake_data, 1, 0.1)
-
-    P_f_hl_train, P_r_hl_train = get_naive_bayes_probs(P_r, P_f, P_w_r, P_w_f, train_xs_all)
-    # Since there are more than one class, P_f_hl = (P_f * P_hl_f) / sum(P_c * P_hl_c for each class c)
-    predicted_ys_train = np.round(P_f_hl_train / (P_f_hl_train + P_r_hl_train))
-    train_accuracy = np.sum(predicted_ys_train == train_ys_all) / float(len(train_ys_all))
-
-    P_f_hl_test, P_r_hl_test = get_naive_bayes_probs(P_r, P_f, P_w_r, P_w_f, test_xs_all)
-    # Since there are more than one class, P_f_hl = (P_f * P_hl_f) / sum(P_c * P_hl_c for each class c)
-    predicted_ys_test = np.round(P_f_hl_test / (P_f_hl_test + P_r_hl_test))
-    test_accuracy = np.sum(predicted_ys_test == test_ys_all) / float(len(test_ys_all))
-
-    print "Training accuracy: {0:.2f}%".format(train_accuracy * 100)
-    print "Test accuracy: {0:.2f}%".format(test_accuracy * 100)
-
-def part3(train_xs_r, train_xs_f, train_ys_r, train_ys_f):
-
-    ##### PART 3A #####
-    words_counts = get_words_counts(train_xs_r, train_xs_f)
-    
-    num_real_data = len(train_ys_r)
-    num_fake_data = len(train_ys_f)
-    num_total_data = num_real_data + num_fake_data
-    
-    P_r = num_real_data / float(num_total_data)
-    P_f = 1 - P_r
-    
-    m = 1
-    p = 0.1
-    P_w_r = get_prob_words_given_label(words_counts, 0, num_real_data, m, p)
-    P_w_f = get_prob_words_given_label(words_counts, 1, num_fake_data, m, p)
-
-    words = words_counts.keys()
-
-    # compute NB probs of f & r given word for each word in the entire data set.
-    # the top ten in Ps_f_w represents the ten words whose presence most strongly predicts that the news is fake.
-    Ps_f_w, Ps_r_w = {}, {}
-    Ps_f_nw, Ps_r_nw = {}, {}
-    for word in words:
-        P_f_w, P_r_w = get_NB_probs_presence(P_r, P_f, P_w_r[word], P_w_f[word])
-        Ps_f_w[word] = P_f_w
-        Ps_r_w[word] = P_r_w
-        P_f_nw, P_r_nw = get_NB_probs_absence(P_r, P_f, P_w_r[word], P_w_f[word])
-        Ps_f_nw[word] = P_f_nw
-        Ps_r_nw[word] = P_r_nw
-
-    pres_f = sorted(Ps_f_w.keys(), key=Ps_f_w.get, reverse=True)
-    pres_r = sorted(Ps_r_w.keys(), key=Ps_r_w.get, reverse=True)
-    abs_f = sorted(Ps_f_nw.keys(), key=Ps_f_nw.get, reverse=True)
-    abs_r = sorted(Ps_r_nw.keys(), key=Ps_r_nw.get, reverse=True)
-
-    print "10 words whose presence most strongly predicts that the news is real: ", pres_r[:10]
-    print "10 words whose absence most strongly predicts that the news is real: ", abs_r[:10]
-    print "10 words whose presence most strongly predicts that the news is fake: ", pres_f[:10]
-    print "10 words whose absence most strongly predicts that the news is fake: ", abs_f[:10]
-    print "\n"
-
-    ##### PART 3B #####
-    remove_stopwords(pres_f, pres_r, abs_f, abs_r)
-    print "10 non-stopwords whose presence most strongly predicts that the news is real: ", pres_r[:10]
-    print "10 non-stopwords whose absence most strongly predicts that the news is real: ", abs_r[:10]
-    print "10 non-stopwords whose presence most strongly predicts that the news is fake: ", pres_f[:10]
-    print "10 non-stopwords whose absence most strongly predicts that the news is fake: ", abs_f[:10]
 
 def remove_stopwords(pres_f, pres_r, abs_f, abs_r):
 
@@ -358,6 +204,156 @@ def get_accuracy(target, prediction):
 
     return acc
 
+def part1(train_real, train_fake):
+    # get words count from each real and fake dataset
+    words_counts = get_words_counts(train_real, train_fake)
+    words_counts.pop('trump')
+
+    real_common = get_prob_words_given_label(words_counts, 0, len(train_real), 1, 0.1)
+    fake_common = get_prob_words_given_label(words_counts, 1, len(train_fake), 1, 0.1)
+
+    print "5 most common words in real headlines: "
+    print sorted(real_common.items(), key=operator.itemgetter(1), reverse=True)[:5]
+    print "5 most common words in fake headlines: "
+    print sorted(fake_common.items(), key=operator.itemgetter(1), reverse=True)[:5]
+    print "\n"
+
+    print "3 keywords that may be useful: "
+    print "Word: 'donald'"
+    print "Probability of appearing in real headlines: ", real_common['donald']
+    print "Probability of appearing in fake headlines: ", fake_common['donald']
+    print "Word: 'the'"
+    print "Probability of appearing in real headlines: ", real_common['the']
+    print "Probability of appearing in fake headlines: ", fake_common['the']
+    print "Word: 'us'"
+    print "Probability of appearing in real headlines: ", real_common['us']
+    print "Probability of appearing in fake headlines: ", fake_common['us']
+
+def part2_graph(params, accs):
+    x = range(len(params))
+    y = accs
+    labels = ['m = {}\np = {}'.format(param[0], param[1]) for param in params]
+
+    plt.plot(x, y)
+    plt.xticks(x, labels, rotation='vertical')
+    # Tweak spacing to prevent clipping of tick-labels
+    plt.subplots_adjust(left=0.125, bottom=0.25, right=0.9, top=0.9)
+
+    plt.xlabel("Values for m and p")
+    plt.ylabel("Validation accuracy")
+    plt.title("Validation Accuracy with Varying Values of m and p")
+    plt.grid(axis='y', linestyle='--')
+    plt.savefig(os.getcwd() + '/part2_graph.png')
+
+def part2(train_xs_r, train_xs_f, train_ys_r, train_ys_f, validation_xs_r, validation_xs_f, validation_ys_r, \
+          validation_ys_f, test_xs_r, test_xs_f, test_ys_r, test_ys_f):
+    # Refer to page 18-23 in http://www.teach.cs.toronto.edu/~csc411h/winter/lec/week5/generative.pdf
+    words_counts = get_words_counts(train_xs_r, train_xs_f)
+
+    num_real_data = len(train_ys_r)
+    num_fake_data = len(train_ys_f)
+    num_total_data = num_real_data + num_fake_data
+    validation_xs_all = np.concatenate((validation_xs_f, validation_xs_r))
+    validation_ys_all = np.concatenate((validation_ys_f, validation_ys_r))
+    train_xs_all = np.concatenate((train_xs_f, train_xs_r))
+    train_ys_all = np.concatenate((train_ys_f, train_ys_r))
+    test_xs_all = np.concatenate((test_xs_f, test_xs_r))
+    test_ys_all = np.concatenate((test_ys_f, test_ys_r))
+
+    P_r = num_real_data / float(num_total_data)
+    P_f = 1 - P_r
+
+    ms = [0.01, 0.1, 1, 10, 100]
+    ps = [0.00001, 0.001, 0.1]
+    params = []
+    accs = []
+
+    print "Naive-Bayes classification (validation performance)\n"
+    i = 1
+    for m in ms:
+        for p in ps:
+            P_w_r = get_prob_words_given_label(words_counts, 0, num_real_data, m, p)
+            P_w_f = get_prob_words_given_label(words_counts, 1, num_fake_data, m, p)
+
+            P_f_hl, P_r_hl = get_naive_bayes_probs(P_r, P_f, P_w_r, P_w_f, validation_xs_all)
+            # Since there are more than one class, P_f_hl = (P_f * P_hl_f) / sum(P_c * P_hl_c for each class c)
+            predicted_ys = np.round(P_f_hl / (P_f_hl + P_r_hl))
+            validation_accuracy = np.sum(predicted_ys == validation_ys_all) / float(len(validation_ys_all))
+            print "===== Test {} =====\nm: {}\np: {}\naccuracy: {}\n".format(i, m, p, validation_accuracy)
+
+            params.append(tuple((m, p)))
+            accs.append(validation_accuracy)
+
+            i += 1
+
+    # plot graph of test results
+    part2_graph(params, accs)
+    plt.clf()
+
+    print "Final performance on training and test sets with m = 1 and p = 0.1"
+    P_w_r = get_prob_words_given_label(words_counts, 0, num_real_data, 1, 0.1)
+    P_w_f = get_prob_words_given_label(words_counts, 1, num_fake_data, 1, 0.1)
+
+    P_f_hl_train, P_r_hl_train = get_naive_bayes_probs(P_r, P_f, P_w_r, P_w_f, train_xs_all)
+    # Since there are more than one class, P_f_hl = (P_f * P_hl_f) / sum(P_c * P_hl_c for each class c)
+    predicted_ys_train = np.round(P_f_hl_train / (P_f_hl_train + P_r_hl_train))
+    train_accuracy = np.sum(predicted_ys_train == train_ys_all) / float(len(train_ys_all))
+
+    P_f_hl_test, P_r_hl_test = get_naive_bayes_probs(P_r, P_f, P_w_r, P_w_f, test_xs_all)
+    # Since there are more than one class, P_f_hl = (P_f * P_hl_f) / sum(P_c * P_hl_c for each class c)
+    predicted_ys_test = np.round(P_f_hl_test / (P_f_hl_test + P_r_hl_test))
+    test_accuracy = np.sum(predicted_ys_test == test_ys_all) / float(len(test_ys_all))
+
+    print "Training accuracy: {0:.2f}%".format(train_accuracy * 100)
+    print "Test accuracy: {0:.2f}%".format(test_accuracy * 100)
+
+def part3(train_xs_r, train_xs_f, train_ys_r, train_ys_f):
+    ##### PART 3A #####
+    words_counts = get_words_counts(train_xs_r, train_xs_f)
+
+    num_real_data = len(train_ys_r)
+    num_fake_data = len(train_ys_f)
+    num_total_data = num_real_data + num_fake_data
+
+    P_r = num_real_data / float(num_total_data)
+    P_f = 1 - P_r
+
+    m = 1
+    p = 0.1
+    P_w_r = get_prob_words_given_label(words_counts, 0, num_real_data, m, p)
+    P_w_f = get_prob_words_given_label(words_counts, 1, num_fake_data, m, p)
+
+    words = words_counts.keys()
+
+    # compute NB probs of f & r given word for each word in the entire data set.
+    # the top ten in Ps_f_w represents the ten words whose presence most strongly predicts that the news is fake.
+    Ps_f_w, Ps_r_w = {}, {}
+    Ps_f_nw, Ps_r_nw = {}, {}
+    for word in words:
+        P_f_w, P_r_w = get_NB_probs_presence(P_r, P_f, P_w_r[word], P_w_f[word])
+        Ps_f_w[word] = P_f_w
+        Ps_r_w[word] = P_r_w
+        P_f_nw, P_r_nw = get_NB_probs_absence(P_r, P_f, P_w_r[word], P_w_f[word])
+        Ps_f_nw[word] = P_f_nw
+        Ps_r_nw[word] = P_r_nw
+
+    pres_f = sorted(Ps_f_w.keys(), key=Ps_f_w.get, reverse=True)
+    pres_r = sorted(Ps_r_w.keys(), key=Ps_r_w.get, reverse=True)
+    abs_f = sorted(Ps_f_nw.keys(), key=Ps_f_nw.get, reverse=True)
+    abs_r = sorted(Ps_r_nw.keys(), key=Ps_r_nw.get, reverse=True)
+
+    print "10 words whose presence most strongly predicts that the news is real: ", pres_r[:10]
+    print "10 words whose absence most strongly predicts that the news is real: ", abs_r[:10]
+    print "10 words whose presence most strongly predicts that the news is fake: ", pres_f[:10]
+    print "10 words whose absence most strongly predicts that the news is fake: ", abs_f[:10]
+    print "\n"
+
+    ##### PART 3B #####
+    remove_stopwords(pres_f, pres_r, abs_f, abs_r)
+    print "10 non-stopwords whose presence most strongly predicts that the news is real: ", pres_r[:10]
+    print "10 non-stopwords whose absence most strongly predicts that the news is real: ", abs_r[:10]
+    print "10 non-stopwords whose presence most strongly predicts that the news is fake: ", pres_f[:10]
+    print "10 non-stopwords whose absence most strongly predicts that the news is fake: ", abs_f[:10]
 
 def part4_graph(train_accs, val_accs, test_accs, epochs):
 
@@ -537,6 +533,42 @@ def part7(train_x, train_y, validation_x, validation_y, train_words):
     graph = graphviz.Source(dot_data)
     graph.render('tree')
 
+def part8(train_x_r, train_x_f, x_i, m, p):
+
+    words_count = get_words_counts(train_x_r, train_x_f)
+    num_real = len(train_x_r)
+    num_fake = len(train_x_f)
+    num_hl = num_real + num_fake
+
+    # values in the left and right nodes after the split
+    right_real = words_count[x_i][0]
+    right_fake = words_count[x_i][1]
+    left_real = num_real - right_real
+    left_fake = num_fake - right_fake
+    right_vals = [right_real, right_fake]
+    left_vals = [left_real, left_fake]
+
+    # calculate necessary probabilities
+    P_real = num_real / float(num_hl)
+    P_fake = 1 - P_real
+    # probabilities of x_i in the split
+    P_x_real = get_prob_words_given_label(words_count, 0, num_real, m, p)[x_i]     # P("is"|real)
+    P_x_fake = get_prob_words_given_label(words_count, 1, num_fake, m, p)[x_i]     # P("is"|fake)
+
+    # calculate entropies
+    h_y = -(P_real * math.log(P_real, 2)) - (P_fake * math.log(P_fake, 2))
+    # entropy of Y given that x_i is classified as 'real' in the split
+    h_y_x_real = -((float(left_vals[0]) / sum(left_vals)) * math.log((float(left_vals[0]) / sum(left_vals)), 2)) - \
+                 ((float(left_vals[1]) / sum(left_vals)) * math.log((float(left_vals[1]) / sum(left_vals)), 2))
+    # entropy of Y given that x_i is classified as 'fake' in the split
+    h_y_x_fake = -((float(right_vals[0]) / sum(right_vals)) * math.log((float(right_vals[0]) / sum(right_vals)), 2)) - (
+            (float(right_vals[1]) / sum(right_vals)) * math.log((float(right_vals[1]) / sum(right_vals)), 2))
+
+    # mutual information after the split
+    I_y_xi = h_y - ((P_x_real * h_y_x_real) + (P_x_fake * h_y_x_fake))
+
+    print "Mutual information for word '{}' after the split: ".format(x_i), I_y_xi
+
 
 if __name__ == '__main__':
     train_xs_r, test_xs_r, validation_xs_r, train_ys_r, test_ys_r, validation_ys_r = load_data(fn_real, 0)
@@ -556,4 +588,12 @@ if __name__ == '__main__':
     # part3(train_xs_r, train_xs_f, train_ys_r, train_ys_f)
 
     # part4()
-    part7(train_x, train_y, val_x, val_y, train_xs)
+    # part7(train_x, train_y, val_x, val_y, train_xs)
+    # TODO: part 3c, part 7c
+    ##### PART 8 #####
+    x_i = "is"
+    x_j = "the"
+    x_k = "brexit"
+    part8(train_xs_r, train_xs_f, x_i, 1, 0.1)      # part 8a
+    part8(train_xs_r, train_xs_f, x_j, 1, 0.1)      # part 8b
+    part8(train_xs_r, train_xs_f, x_k, 1, 0.1)
