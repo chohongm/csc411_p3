@@ -9,10 +9,12 @@ import torch.nn as nn
 from torch.autograd import Variable
 import operator
 from sklearn.feature_extraction.text import ENGLISH_STOP_WORDS
-
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.metrics import classification_report
+from sklearn import tree
+import graphviz
 
 fn_fake, fn_real = 'clean_fake.txt', 'clean_real.txt'
-
 
 # Loads data into categorical sets for each class where each data is a list of words in a line.
 def load_data(fn, class_label):
@@ -36,6 +38,7 @@ def load_data(fn, class_label):
     train_xs = lines[:train_end_idx]
     test_xs = lines[train_end_idx:test_end_idx]
     validation_xs = lines[test_end_idx:validation_end_idx]
+    # print train_xs
     
     # build labels
     train_ys = np.empty(sizes[0])
@@ -46,7 +49,6 @@ def load_data(fn, class_label):
     validation_ys.fill(class_label)
     
     return train_xs, test_xs, validation_xs, train_ys, test_ys, validation_ys
-
 
 def get_words_counts(data_real, data_fake):
     words_counts = {}
@@ -68,7 +70,6 @@ def get_words_counts(data_real, data_fake):
                 words_counts[word][1] += 1
 
     return words_counts
-
 
 def get_prob_words_given_label(words_counts, label, num_labeled_data, m, p):
     # again, label is 0 for real and 1 for fake. This number refers to index
@@ -102,8 +103,7 @@ def get_prob_of_hl_given_label(P_w_l, words_in_line):
         i += 1
 
     return P_words_in_hl
-    
-    
+
 def part1(train_real, train_fake):
 
     # get words count from each real and fake dataset
@@ -129,7 +129,6 @@ def part1(train_real, train_fake):
     print "Word: 'us'"
     print "Probability of appearing in real headlines: ", real_common['us']
     print "Probability of appearing in fake headlines: ", fake_common['us']
-
 
 def get_naive_bayes_probs(P_r, P_f, P_w_r, P_w_f, xs_all):
 
@@ -183,7 +182,6 @@ def part2_graph(params, accs):
     plt.title("Validation Accuracy with Varying Values of m and p")
     plt.grid(axis='y', linestyle='--')
     plt.savefig(os.getcwd() + '/part2_graph.png')
-
 
 def part2(train_xs_r, train_xs_f, train_ys_r, train_ys_f, validation_xs_r, validation_xs_f, validation_ys_r, \
           validation_ys_f, test_xs_r, test_xs_f, test_ys_r, test_ys_f):
@@ -247,7 +245,6 @@ def part2(train_xs_r, train_xs_f, train_ys_r, train_ys_f, validation_xs_r, valid
     print "Training accuracy: {0:.2f}%".format(train_accuracy * 100)
     print "Test accuracy: {0:.2f}%".format(test_accuracy * 100)
 
-
 def part3(train_xs_r, train_xs_f, train_ys_r, train_ys_f):
 
     ##### PART 3A #####
@@ -297,7 +294,6 @@ def part3(train_xs_r, train_xs_f, train_ys_r, train_ys_f):
     print "10 non-stopwords whose presence most strongly predicts that the news is fake: ", pres_f[:10]
     print "10 non-stopwords whose absence most strongly predicts that the news is fake: ", abs_f[:10]
 
-
 def remove_stopwords(pres_f, pres_r, abs_f, abs_r):
 
     stopwords = []
@@ -316,7 +312,6 @@ def remove_stopwords(pres_f, pres_r, abs_f, abs_r):
         if stopword in abs_r:
             abs_r.remove(stopword)
 
-
 def get_keywords_list(dataset):
 
     words = []
@@ -329,7 +324,7 @@ def get_keywords_list(dataset):
 
     return words
 
-def create_hl_matrix(x, y, train_set):
+def create_hl_vector(x, y, train_set):
 
     # get words in training set
     words = get_keywords_list(train_set)
@@ -484,6 +479,64 @@ def part4():
     part4_graph(train_accs, val_accs, test_accs, epochs)
     plt.clf()
 
+def part7_graph(depths, train_accs, val_accs):
+
+    # x_labels = [str(d) for d in depths]
+
+    plt.yticks(np.arange(65, 110, step=5.0))
+    # plt.xticks(depths, x_labels)
+    plt.plot(depths, train_accs, 'r', label="Training Set")
+    plt.plot(depths, val_accs, 'b', label="Validation Set")
+    plt.xlabel("Depth of tree")
+    plt.ylabel("Accuracy (%)")
+    plt.title("Performance on training and validation sets")
+    plt.grid(axis='y', linestyle='--')
+    plt.savefig(os.getcwd() + '/part7_graph.png')
+
+def part7(train_x, train_y, validation_x, validation_y, train_words):
+
+    max_depth = [2, 4, 8, 16, 32, 64, 128, 256, 512, 1024]
+    words_list = get_keywords_list(train_words)
+    print len(words_list)
+
+    n_features = train_x.shape[1]
+    n_samples = train_x.shape[0]
+    depths = []
+    train_accs = []
+    val_accs = []
+
+    for depth in max_depth:
+
+        print "Depth: ", str(depth)
+        # use random seed 0
+        clf_tree = DecisionTreeClassifier(max_depth=depth, random_state=0, min_samples_split=8, max_features=0.25)
+        clf_tree.fit(train_x, train_y)
+
+        # calculate accuracy on training and validation sets
+        train_acc = clf_tree.score(train_x, train_y) * 100
+        val_acc = clf_tree.score(validation_x, validation_y) * 100
+        train_accs.append(train_acc)
+        val_accs.append(val_acc)
+        depths.append(depth)
+
+        print "Training accuracy: ", train_acc
+        print "Validation accuracy: ", val_acc
+        print "\n"
+
+    # plot graph
+    part7_graph(depths, train_accs, val_accs)
+    plt.clf()
+
+    # best validation performance at max_depth=64
+    clf = DecisionTreeClassifier(max_depth=64, random_state=0, min_samples_split=8, max_features=0.25)
+    clf.fit(train_x, train_y)
+
+    # produce visualization
+    dot_data = tree.export_graphviz(clf, out_file=None, feature_names=words_list, class_names=['real', 'fake'],
+                                    filled=True, rounded=True, special_characters=True, max_depth=2)
+    graph = graphviz.Source(dot_data)
+    graph.render('tree')
+
 
 if __name__ == '__main__':
     train_xs_r, test_xs_r, validation_xs_r, train_ys_r, test_ys_r, validation_ys_r = load_data(fn_real, 0)
@@ -491,10 +544,16 @@ if __name__ == '__main__':
 
     train_xs = np.concatenate((train_xs_r, train_xs_f))
     train_ys = np.concatenate((train_ys_r, train_ys_f))
+    val_xs = np.concatenate((validation_xs_r, validation_xs_f))
+    val_ys = np.concatenate((validation_ys_r, validation_ys_f))
+
+    train_x, train_y = create_hl_vector(train_xs, train_ys, train_xs)
+    val_x, val_y = create_hl_vector(val_xs, val_ys, train_xs)
 
     # part1(train_xs_r, train_xs_f)
     # part2(train_xs_r, train_xs_f, train_ys_r, train_ys_f, validation_xs_r, validation_xs_f, validation_ys_r, \
     #       validation_ys_f, test_xs_r, test_xs_f, test_ys_r, test_ys_f)
-    part3(train_xs_r, train_xs_f, train_ys_r, train_ys_f)
+    # part3(train_xs_r, train_xs_f, train_ys_r, train_ys_f)
 
     # part4()
+    part7(train_x, train_y, val_x, val_y, train_xs)
