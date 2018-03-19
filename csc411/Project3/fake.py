@@ -142,13 +142,13 @@ def get_NB_probs_absence(P_r, P_f, P_w_r, P_w_f):
 
 def remove_stopwords(pres_f, pres_r, abs_f, abs_r):
 
-    stopwords = []
+    # stopwords = []
+    #
+    # for stopword in ENGLISH_STOP_WORDS:
+    #     if stopword in (pres_f or pres_r or abs_f or abs_r):
+    #         stopwords.append(stopword)
 
     for stopword in ENGLISH_STOP_WORDS:
-        if stopword in (pres_f or pres_r or abs_f or abs_r):
-            stopwords.append(stopword)
-
-    for stopword in stopwords:
         if stopword in pres_f:
             pres_f.remove(stopword)
         if stopword in pres_r:
@@ -342,18 +342,36 @@ def part3(train_xs_r, train_xs_f, train_ys_r, train_ys_f):
     abs_f = sorted(Ps_f_nw.keys(), key=Ps_f_nw.get, reverse=True)
     abs_r = sorted(Ps_r_nw.keys(), key=Ps_r_nw.get, reverse=True)
 
-    print "10 words whose presence most strongly predicts that the news is real: ", pres_r[:10]
-    print "10 words whose absence most strongly predicts that the news is real: ", abs_r[:10]
-    print "10 words whose presence most strongly predicts that the news is fake: ", pres_f[:10]
-    print "10 words whose absence most strongly predicts that the news is fake: ", abs_f[:10]
-    print "\n"
+    presence_real = open(os.getcwd()+'/presence_real.txt', 'a')
+    presence_fake = open(os.getcwd() + '/presence_fake.txt', 'a')
+    absence_real = open(os.getcwd() + '/absence_real.txt', 'a')
+    absence_fake = open(os.getcwd() + '/absence_fake.txt', 'a')
+
+    for i in range(10):
+        presence_real.write(pres_r[i] + "\n")
+        presence_fake.write(pres_f[i] + "\n")
+        absence_real.write(abs_r[i] + "\n")
+        absence_fake.write(abs_f[i] + "\n")
+        if i == 9:
+            presence_real.write("\n\n")
+            presence_fake.write("\n\n")
+            absence_real.write("\n\n")
+            absence_fake.write("\n\n")
 
     ##### PART 3B #####
     remove_stopwords(pres_f, pres_r, abs_f, abs_r)
-    print "10 non-stopwords whose presence most strongly predicts that the news is real: ", pres_r[:10]
-    print "10 non-stopwords whose absence most strongly predicts that the news is real: ", abs_r[:10]
-    print "10 non-stopwords whose presence most strongly predicts that the news is fake: ", pres_f[:10]
-    print "10 non-stopwords whose absence most strongly predicts that the news is fake: ", abs_f[:10]
+
+    for i in range(10):
+        presence_real.write(pres_r[i] + "\n")
+        presence_fake.write(pres_f[i] + "\n")
+        absence_real.write(abs_r[i] + "\n")
+        absence_fake.write(abs_f[i] + "\n")
+
+    presence_real.close()
+    presence_fake.close()
+    absence_real.close()
+    absence_real.close()
+
 
 def part4_graph(train_accs, val_accs, test_accs, epochs):
 
@@ -548,12 +566,12 @@ def part8(train_x_r, train_x_f, x_i, m, p):
     right_vals = [right_real, right_fake]
     left_vals = [left_real, left_fake]
 
-    # calculate necessary probabilities
+    # class probabilities
     P_real = num_real / float(num_hl)
     P_fake = 1 - P_real
     # probabilities of x_i in the split
-    P_x_real = get_prob_words_given_label(words_count, 0, num_real, m, p)[x_i]     # P("is"|real)
-    P_x_fake = get_prob_words_given_label(words_count, 1, num_fake, m, p)[x_i]     # P("is"|fake)
+    P_x_real = get_prob_words_given_label(words_count, 0, num_real, m, p)[x_i]     # P(x_i|real)
+    P_x_fake = get_prob_words_given_label(words_count, 1, num_fake, m, p)[x_i]     # P(x_i|fake)
 
     # calculate entropies
     h_y = -(P_real * math.log(P_real, 2)) - (P_fake * math.log(P_fake, 2))
@@ -589,11 +607,8 @@ if __name__ == '__main__':
 
     # part4()
     # part7(train_x, train_y, val_x, val_y, train_xs)
-    # TODO: part 3c, part 7c
     ##### PART 8 #####
     x_i = "is"
-    x_j = "the"
-    x_k = "brexit"
+    x_j = "a"
     part8(train_xs_r, train_xs_f, x_i, 1, 0.1)      # part 8a
     part8(train_xs_r, train_xs_f, x_j, 1, 0.1)      # part 8b
-    part8(train_xs_r, train_xs_f, x_k, 1, 0.1)
