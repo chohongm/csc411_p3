@@ -313,13 +313,13 @@ def perform_logistic_regression(train_xs, train_ys, validation_xs, validation_ys
         y_pred_train = model(x_train).data.numpy()
         perf_train = np.mean(np.argmax(y_pred_train, 1) == np.argmax(y_train, 1))
         perfs_train.append(perf_train)
-        print 'Training set performance: ', perf_train
+        print 'Training set performance: {0:.2f}%'.format(perf_train * 100)
 
         # Validation set performance
         y_pred_validation = model(x_validation).data.numpy()
         perf_validation = np.mean(np.argmax(y_pred_validation, 1) == np.argmax(y_validation, 1))
         perfs_validation.append(perf_validation)
-        print 'Validation set performance: ', perf_validation
+        print 'Validation set performance: {0:.2f}%'.format(perf_validation * 100)
         print "\n"
 
     return epochs, perfs_train, perfs_validation, model
@@ -465,21 +465,25 @@ def part2(train_xs_r, train_xs_f, train_ys_r, train_ys_f, validation_xs_r, valid
     part2_graph(params, accs)
     plt.clf()
 
-    print "Final performance on training and test sets with m = 1 and p = 0.1"
+
     P_w_r = get_prob_words_given_label(words_counts, 0, num_real_data, 1, 0.1)
     P_w_f = get_prob_words_given_label(words_counts, 1, num_fake_data, 1, 0.1)
 
     P_f_hl_train, P_r_hl_train = get_naive_bayes_probs(P_r, P_f, P_w_r, P_w_f, train_xs_all)
-    # Since there are more than one class, P_f_hl = (P_f * P_hl_f) / sum(P_c * P_hl_c for each class c)
     predicted_ys_train = np.round(P_f_hl_train / (P_f_hl_train + P_r_hl_train))
     train_accuracy = np.sum(predicted_ys_train == train_ys_all) / float(len(train_ys_all))
 
+    P_f_hl_val, P_r_hl_val = get_naive_bayes_probs(P_r, P_f, P_w_r, P_w_f, validation_xs_all)
+    predicted_ys_val = np.round(P_f_hl_val / (P_f_hl_val + P_r_hl_val))
+    val_accuracy = np.sum(predicted_ys_val == validation_ys_all) / float(len(validation_ys_all))
+
     P_f_hl_test, P_r_hl_test = get_naive_bayes_probs(P_r, P_f, P_w_r, P_w_f, test_xs_all)
-    # Since there are more than one class, P_f_hl = (P_f * P_hl_f) / sum(P_c * P_hl_c for each class c)
     predicted_ys_test = np.round(P_f_hl_test / (P_f_hl_test + P_r_hl_test))
     test_accuracy = np.sum(predicted_ys_test == test_ys_all) / float(len(test_ys_all))
 
+    print "Final training, validation, and test performance for Naive Bayes: "
     print "Training accuracy: {0:.2f}%".format(train_accuracy * 100)
+    print "Validation accuracy: {0:.2f}%".format(val_accuracy * 100)
     print "Test accuracy: {0:.2f}%\n".format(test_accuracy * 100)
 
 def part3(train_xs_r, train_xs_f, train_ys_r, train_ys_f):
@@ -574,14 +578,25 @@ def part4(train_xs_r, test_xs_r, validation_xs_r, train_ys_r, test_ys_r, validat
     trained_weights = state_dict['linear.weight']
     np.save("trained_weights.npy", trained_weights)
     
-    # test set for computing performance
+    # sets for computing performance
+    x_train = Variable(torch.from_numpy(train_xs), requires_grad=False).type(torch.FloatTensor)
+    y_train = Variable(torch.from_numpy(np.argmax(train_ys, 1)), requires_grad=False).type(torch.LongTensor)
+    x_val = Variable(torch.from_numpy(validation_xs), requires_grad=False).type(torch.FloatTensor)
+    y_val = Variable(torch.from_numpy(np.argmax(validation_ys, 1)), requires_grad=False).type(torch.LongTensor)
     x_test = Variable(torch.from_numpy(test_xs), requires_grad=False).type(torch.FloatTensor)
     y_test = Variable(torch.from_numpy(np.argmax(test_ys, 1)), requires_grad=False).type(torch.LongTensor)
-    
-    # Test set performance
+
+    y_pred_train = trained_model(x_train).data.numpy()
+    perf_train = np.mean(np.argmax(y_pred_train, 1) == np.argmax(y_train, 1))
+    y_pred_val = trained_model(x_val).data.numpy()
+    perf_val = np.mean(np.argmax(y_pred_val, 1) == np.argmax(y_val, 1))
     y_pred_test = trained_model(x_test).data.numpy()
     perf_test = np.mean(np.argmax(y_pred_test, 1) == np.argmax(y_test, 1))
-    print 'Test set performance: ', perf_test
+
+    print "Final training, validation, and test performance for Logistic Regression: "
+    print 'Training set accuracy: {0:.2f}%'.format(perf_train * 100)
+    print 'Validation set accuracy: {0:.2f}%'.format(perf_val * 100)
+    print 'Test set accuracy: {0:.2f}%\n'.format(perf_test * 100)
 
     part4_graph(epochs, perfs_train, perfs_validation, r_flag)
     plt.clf()
@@ -635,7 +650,7 @@ def part7_graph(depths, train_accs, val_accs):
     plt.grid(axis='y', linestyle='--')
     plt.savefig(os.getcwd() + '/part7_graph.png')
 
-def part7(train_x, train_y, validation_x, validation_y, train_words):
+def part7(train_x, train_y, validation_x, validation_y, test_x, test_y, train_words):
 
     max_depth = [2, 4, 8, 16, 32, 64, 128, 256, 512, 1024]
     words_list = get_keywords_list(train_words)
@@ -677,6 +692,16 @@ def part7(train_x, train_y, validation_x, validation_y, train_words):
                                     filled=True, rounded=True, special_characters=True, max_depth=2)
     graph = graphviz.Source(dot_data)
     graph.render('tree')
+
+    # measure performance on test set
+    train_acc = clf.score(train_x, train_y) * 100
+    val_acc = clf.score(validation_x, validation_y) * 100
+    test_acc = clf.score(test_x, test_y) * 100
+
+    print "Final training, validation, and test performance for Decision Tree: "
+    print "Training accuracy: {0:.2f}%".format(train_acc)
+    print "Validation accuracy: {0:.2f}%".format(val_acc)
+    print "Test accuracy: {0:.2f}%\n".format(test_acc)
 
 def part8(train_x_r, train_x_f, x_i, m, p):
 
@@ -723,9 +748,12 @@ if __name__ == '__main__':
     train_ys = np.concatenate((train_ys_r, train_ys_f))
     val_xs = np.concatenate((validation_xs_r, validation_xs_f))
     val_ys = np.concatenate((validation_ys_r, validation_ys_f))
+    test_xs = np.concatenate((test_xs_r, test_xs_f))
+    test_ys = np.concatenate((test_ys_r, test_ys_f))
 
     train_x, train_y = create_hl_vector(train_xs, train_ys, train_xs)
     val_x, val_y = create_hl_vector(val_xs, val_ys, train_xs)
+    test_x, test_y = create_hl_vector(test_xs, test_ys, train_xs)
 
     # print "=============== Starting part1 ==============="
     # part1(train_xs_r, train_xs_f)
@@ -735,9 +763,9 @@ if __name__ == '__main__':
     # print "\n=============== Starting part3 ==============="
     # part3(train_xs_r, train_xs_f, train_ys_r, train_ys_f)
     print "\n=============== Starting part4 ==============="
-    print "Performing Logistic Regression without regularization"
-    part4(train_xs_r, test_xs_r, validation_xs_r, train_ys_r, test_ys_r, validation_ys_r, \
-          train_xs_f, test_xs_f, validation_xs_f, train_ys_f, test_ys_f, validation_ys_f, r_flag=None)
+    # print "Performing Logistic Regression without regularization"
+    # part4(train_xs_r, test_xs_r, validation_xs_r, train_ys_r, test_ys_r, validation_ys_r, \
+    #       train_xs_f, test_xs_f, validation_xs_f, train_ys_f, test_ys_f, validation_ys_f, r_flag=None)
     print "Performing Logistic Regression with regularization"
     part4(train_xs_r, test_xs_r, validation_xs_r, train_ys_r, test_ys_r, validation_ys_r, \
           train_xs_f, test_xs_f, validation_xs_f, train_ys_f, test_ys_f, validation_ys_f, r_flag='r')
@@ -745,7 +773,7 @@ if __name__ == '__main__':
     # part6(train_xs_r, test_xs_r, validation_xs_r, train_ys_r, test_ys_r, validation_ys_r, \
     #       train_xs_f, test_xs_f, validation_xs_f, train_ys_f, test_ys_f, validation_ys_f)
     # print "\n=============== Starting part7 ==============="
-    # part7(train_x, train_y, val_x, val_y, train_xs)
+    # part7(train_x, train_y, val_x, val_y, test_x, test_y, train_xs)
     # print "\n=============== Starting part8 ==============="
     # x_i = "is"
     # x_j = "a"
