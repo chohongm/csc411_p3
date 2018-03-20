@@ -20,7 +20,7 @@ import graphviz
 fn_fake, fn_real = 'clean_fake.txt', 'clean_real.txt'
 
 # Loads data into categorical sets for each class where each data is a list of words in a line.
-def load_data(fn, class_label):
+def load_data(fn, class_label, limit=None):
     # class_label is 0 for non-spam/real, and 1 for spam/fake
     
     train_ratio, test_ratio, validation_ratio = 0.70, 0.15, 0.15
@@ -32,7 +32,8 @@ def load_data(fn, class_label):
         # performance accuracy will be 100% for both with and without 
         # regularization (enough data to classify without help of regularization) 
         # so won't be able to see the difference.
-        # lines = lines[:1500]
+        if limit is not None:
+            lines = lines[:1500]
         lines = np.array([line.split() for line in lines])
         f.close()
     
@@ -245,11 +246,6 @@ def vectorize_data_for_regression(train_xs_r, test_xs_r, validation_xs_r, \
     return X_train, Y_train, X_validation, Y_validation, X_test, Y_test
 
 def perform_logistic_regression(train_xs, train_ys, validation_xs, validation_ys, r_flag):
-    train_xs, train_ys, validation_xs, validation_ys, test_xs, test_ys = \
-        vectorize_data_for_regression(train_xs_r, test_xs_r, validation_xs_r, \
-                                      train_ys_r, test_ys_r, validation_ys_r, \
-                                      train_xs_f, test_xs_f, validation_xs_f, \
-                                      train_ys_f, test_ys_f, validation_ys_f)
 
     # Hyper Parameters
     m, n = train_xs.shape
@@ -743,7 +739,7 @@ def part8(train_x_r, train_x_f, x_i, m, p):
 if __name__ == '__main__':
     train_xs_r, test_xs_r, validation_xs_r, train_ys_r, test_ys_r, validation_ys_r = load_data(fn_real, 0)
     train_xs_f, test_xs_f, validation_xs_f, train_ys_f, test_ys_f, validation_ys_f = load_data(fn_fake, 1)
-    
+
     train_xs = np.concatenate((train_xs_r, train_xs_f))
     train_ys = np.concatenate((train_ys_r, train_ys_f))
     val_xs = np.concatenate((validation_xs_r, validation_xs_f))
@@ -755,27 +751,31 @@ if __name__ == '__main__':
     val_x, val_y = create_hl_vector(val_xs, val_ys, train_xs)
     test_x, test_y = create_hl_vector(test_xs, test_ys, train_xs)
 
-    # print "=============== Starting part1 ==============="
-    # part1(train_xs_r, train_xs_f)
-    # print "\n=============== Starting part2 ==============="
-    # part2(train_xs_r, train_xs_f, train_ys_r, train_ys_f, validation_xs_r, validation_xs_f, validation_ys_r, \
-    #       validation_ys_f, test_xs_r, test_xs_f, test_ys_r, test_ys_f)
-    # print "\n=============== Starting part3 ==============="
-    # part3(train_xs_r, train_xs_f, train_ys_r, train_ys_f)
+    #### load dataset again for part4 and 6 ####
+    train_xs_r_4, test_xs_r_4, validation_xs_r_4, train_ys_r_4, test_ys_r_4, validation_ys_r_4 = load_data(fn_real, 0, limit=1500)
+    train_xs_f_4, test_xs_f_4, validation_xs_f_4, train_ys_f_4, test_ys_f_4, validation_ys_f_4 = load_data(fn_fake, 1, limit=1500)
+
+    print "=============== Starting part1 ==============="
+    part1(train_xs_r, train_xs_f)
+    print "\n=============== Starting part2 ==============="
+    part2(train_xs_r, train_xs_f, train_ys_r, train_ys_f, validation_xs_r, validation_xs_f, validation_ys_r, \
+          validation_ys_f, test_xs_r, test_xs_f, test_ys_r, test_ys_f)
+    print "\n=============== Starting part3 ==============="
+    part3(train_xs_r, train_xs_f, train_ys_r, train_ys_f)
     print "\n=============== Starting part4 ==============="
-    # print "Performing Logistic Regression without regularization"
-    # part4(train_xs_r, test_xs_r, validation_xs_r, train_ys_r, test_ys_r, validation_ys_r, \
-    #       train_xs_f, test_xs_f, validation_xs_f, train_ys_f, test_ys_f, validation_ys_f, r_flag=None)
+    print "Performing Logistic Regression without regularization"
+    part4(train_xs_r_4, test_xs_r_4, validation_xs_r_4, train_ys_r_4, test_ys_r_4, validation_ys_r_4, \
+          train_xs_f_4, test_xs_f_4, validation_xs_f_4, train_ys_f_4, test_ys_f_4, validation_ys_f_4)
     print "Performing Logistic Regression with regularization"
-    part4(train_xs_r, test_xs_r, validation_xs_r, train_ys_r, test_ys_r, validation_ys_r, \
-          train_xs_f, test_xs_f, validation_xs_f, train_ys_f, test_ys_f, validation_ys_f, r_flag='r')
-    # print "\n=============== Starting part6 ==============="
-    # part6(train_xs_r, test_xs_r, validation_xs_r, train_ys_r, test_ys_r, validation_ys_r, \
-    #       train_xs_f, test_xs_f, validation_xs_f, train_ys_f, test_ys_f, validation_ys_f)
-    # print "\n=============== Starting part7 ==============="
-    # part7(train_x, train_y, val_x, val_y, test_x, test_y, train_xs)
-    # print "\n=============== Starting part8 ==============="
-    # x_i = "is"
-    # x_j = "a"
-    # part8(train_xs_r, train_xs_f, x_i, 1, 0.1)      # part 8a
-    # part8(train_xs_r, train_xs_f, x_j, 1, 0.1)      # part 8b
+    part4(train_xs_r_4, test_xs_r_4, validation_xs_r_4, train_ys_r_4, test_ys_r_4, validation_ys_r_4, \
+          train_xs_f_4, test_xs_f_4, validation_xs_f_4, train_ys_f_4, test_ys_f_4, validation_ys_f_4, r_flag='r')
+    print "\n=============== Starting part6 ==============="
+    part6(train_xs_r_4, test_xs_r_4, validation_xs_r_4, train_ys_r_4, test_ys_r_4, validation_ys_r_4, \
+          train_xs_f_4, test_xs_f_4, validation_xs_f_4, train_ys_f_4, test_ys_f_4, validation_ys_f_4)
+    print "\n=============== Starting part7 ==============="
+    part7(train_x, train_y, val_x, val_y, test_x, test_y, train_xs)
+    print "\n=============== Starting part8 ==============="
+    x_i = "is"
+    x_j = "a"
+    part8(train_xs_r, train_xs_f, x_i, 1, 0.1)      # part 8a
+    part8(train_xs_r, train_xs_f, x_j, 1, 0.1)      # part 8b
